@@ -1,0 +1,288 @@
+   @font-face {
+      font-family: 'Barbra';
+      src: url('fonts/Barbra.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    
+ 
+
+    .title{
+        font-family: 'Barbra', sans-serif;
+        color: white;
+        font-size: 6em; 
+        text-shadow: 1px 1px 3px black;
+        position: absolute;
+        top: 60px;  
+        left: 80px;  
+        width: 500px;
+        height: 300px;
+        margin: 0;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        overflow: hidden; /* por si el texto se pasa */
+        /*background-color: #ff4ecace;*/
+
+    }
+
+    .title2{
+        font-family: 'Barbra', sans-serif;
+        color: white;
+        font-size: 3em; 
+        text-shadow: 1px 1px 3px black;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        overflow: hidden; /* por si el texto se pasa */
+
+    }
+
+    .menu {
+        margin-top: 400px;
+        margin-left: 220px;  
+        display: flex;
+        flex-direction: column; 
+        gap: 15px; /* espacio entre "botones" */
+    }
+
+    .Opciones {
+        margin-top: 100px;
+        margin-left: 28%;  
+        display: flex;
+        gap: 200px; /* espacio entre "botones" */
+    }
+
+    /* Estilo de los enlaces como botones */
+    .btn {
+        font-family: 'Secular One', sans-serif;
+        font-size: 20px;
+        font-style: normal;
+        text-align: center; 
+        display: inline-block;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background: #fffc4ee6;
+        color: rgb(0, 0, 0);
+        width: 200px; 
+        text-decoration: none; /* quitar subrayado */
+    }
+
+    .btn:hover {
+        background: rgba(197, 111, 255, 0.736);
+    }
+
+    .btnOp {
+        display: flex;              /* Usamos flex */
+        flex-direction: column;     /* Texto arriba, icono abajo */
+        align-items: center;        /* Centrar horizontalmente */
+        justify-content: center;    /* Centrar verticalmente */
+        gap: 8px;                   /* Espacio entre texto e icono */
+        padding: 10px 20px;
+        font-family: 'Secular One', sans-serif;
+        font-size: 200%;
+        top: 180px;  
+        font-style: normal;
+        text-align: center; 
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: #fffc4ee6;
+        color: rgb(0, 0, 0);
+        height: 300px;
+        width: 200px; 
+        text-decoration: none; /* quitar subrayado */
+    }
+
+    .btnOp svg {
+        width: 160px;   /* ancho del icono */
+        height: 160px;  /* alto del icono */
+        fill: rgb(0, 0, 0);   /* color del icono */
+    }
+
+    .btnOp:hover {
+    background: #d04fdebc;
+    }
+
+    .OpcionesN {
+        margin-top: 100px;
+        margin-left: 19%;  
+        display: flex;
+        gap: 100px; /* espacio entre "botones" */
+    }
+
+    .btnOpN {
+        display: flex;              /* Usamos flex */
+        align-items: center;        /* Centrar horizontalmente */
+        justify-content: center;    /* Centrar verticalmente */
+        padding: 10px 20px;
+        font-family: 'Secular One', sans-serif;
+        font-size: 200%;
+        top: 180px;  
+        font-style: normal;
+        text-align: center; 
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background: #ff4eca9c;
+        color: rgb(255, 255, 255);
+        height: 300px;
+        width: 200px; 
+        text-decoration: none; /* quitar subrayado */
+    }
+
+    .btnNivel1:hover {
+        background: 
+        linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), /* capa oscura semi transparente */
+        url("Img/nivel1.jpeg") no-repeat center center/cover;
+    }
+
+
+    .btnNivel2:hover {
+        background: 
+        linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), /* capa oscura semi transparente */
+        url("Img/nivel2.jpeg") no-repeat center center/cover;
+    }
+
+    .btnNivel3:hover {
+        background: 
+        linear-gradient(rgba(0,0,0,0.4), rgba(115, 23, 208, 0.4)), /* capa oscura semi transparente */
+        url("Img/nivel3.jpeg") no-repeat center center/cover;
+    }
+
+    body {
+        font-family: "Secular One", sans-serif;
+        color: white;
+        font-size: 18px;
+        text-align: center;
+    }
+
+    .Mopciones {
+        font-family: "Secular One", sans-serif;
+        color: white;
+        font-size: 18px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .opcion {
+        background: rgba(255, 37, 164, 0.451);
+        margin-bottom: 30px;
+        padding: 20px;
+        border-radius: 12px;
+        width: 400px;
+        text-align: center;
+    }
+
+    input[type=range] {
+        width: 80%;
+    }
+
+    table {
+        margin: 50px auto;
+        border-collapse: collapse;
+        width: 60%;
+        background: rgba(69, 3, 78, 0.408);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    th, td {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    th {
+        font-size: 1.5em;
+        background: rgba(40, 19, 176, 0.108);
+    }
+
+    td {
+        font-size: 1.2em;
+    }
+
+    /* Zona de juego */
+    .game-area {
+        width: 95vw;   /* 90% del ancho de la pantalla */
+        height: 80vh;  /* 70% de la altura de la pantalla */
+        background: black;
+        margin: 20px auto 0 auto; /* top 20px, centrado horizontal */
+        border: 3px solid rgba(228, 146, 251, 0.375);
+        border-radius: 12px;
+    }
+
+    /* HUD debajo */
+    .hud {
+        margin: 15px auto 0 auto; /* centrado horizontal */
+        width: 90vw;   /* 90% del ancho de la pantalla */
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(86, 30, 150, 0.632);
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .hud-item {
+        font-size: 1.2em;
+    }
+
+    .hud-icon {
+        width: 40px;
+        height: 40px;
+        vertical-align: middle; /* opcional: alinea con el texto */
+        margin-right: 5px;      /* espacio entre imagen y texto */
+    }
+
+    .pause-btn {
+        font-family: "Secular One", sans-serif;
+        background: #f64effa1;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1em;
+    }
+
+    .pause-btn:hover {
+        background: #c14effa1;
+    }
+
+    .pause-menu {
+        display: none; /* oculto por defecto */
+        position: absolute;
+        top: 50%; 
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(95, 22, 242, 0.552);
+        padding: 20px 30px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 0 10px #000;
+        z-index: 1000;
+    }
+
+    .pause-menu button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px 20px;
+        font-family: "Secular One", sans-serif;
+        font-size: 1.2em;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        background:  #fffc4ee6;
+        color: rgb(6, 36, 86);
+        width: 150px;
+    }
+
+    .pause-menu button:hover {
+        background: #fffc4ea2;
+    }
+
+    

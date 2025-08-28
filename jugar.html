@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jugar</title>
+    <link rel="icon" type="image/png" href="Img/estrella.webp">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Secular+One&display=swap" rel="stylesheet">
+</head>
+
+<body style="background-image: url('Img/BG4.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
+    <audio id="bg-music" src="sound/supershy.mp3" loop autoplay></audio>
+    <!-- Área de juego -->
+    <div class="game-area"></div>
+    
+    <!-- HUD / Menú inferior -->
+    <div class="hud">
+        <div class="hud-item">
+            <img src="img/Mineral1.webp" alt="Vida" class="hud-icon">
+            Vida: <span id="vida">3</span>
+        </div>
+
+        <div class="hud-item">
+            <img src="img/Mineral2.webp" alt="Potenciador" class="hud-icon">
+            <span>x2</span>
+        </div>
+
+        <div class="hud-item">
+            <img src="img/reloj.png" alt="Reloj" class="hud-icon">
+            Tiempo: <span id="tiempo">00:00</span>
+        </div>
+
+        <div class="hud-item">
+            <img src="img/puntu.webp" alt="Puntuacion" class="hud-icon">
+            Puntuación: <span id="score">0</span>
+        </div>
+
+        <button class="pause-btn" onclick="togglePauseMenu()">⏸️ Pausa</button>
+    </div>
+
+    <!-- Mini menú de pausa -->
+    <div id="pause-menu" class="pause-menu">
+        <button onclick="resumeGame()">Reanudar</button>
+        <button onclick="restartGame()">Reiniciar</button>
+        <button onclick="exitGame()">Salir</button>
+    </div>
+
+    <script src="scripts/menu.js"></script>
+</body>
+</html>
