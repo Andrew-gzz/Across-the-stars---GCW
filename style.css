@@ -205,14 +205,26 @@
         font-size: 1.2em;
     }
 
-    /* Zona de juego */
+    /* 
+    Zona de juego 
     .game-area {
-        width: 95vw;   /* 90% del ancho de la pantalla */
-        height: 80vh;  /* 70% de la altura de la pantalla */
+        width: 95vw;   //90% del ancho de la pantalla 
+        height: 80vh;  // 70% de la altura de la pantalla 
         background: black;
-        margin: 20px auto 0 auto; /* top 20px, centrado horizontal */
+        margin: 20px auto 0 auto; // top 20px, centrado horizontal
         border: 3px solid rgba(228, 146, 251, 0.375);
         border-radius: 12px;
+    }
+    */
+    
+    .game-area {
+    
+    width: 95vw;
+    height: 80vh;            /* importante */
+    margin: 20px auto 0 auto;
+    border: 3px solid rgba(228, 146, 251, 0.375);
+    border-radius: 12px;
+    outline: 2px solid rgba(255,255,255,.15);
     }
 
     /* HUD debajo */
