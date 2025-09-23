@@ -1,5 +1,5 @@
 // src/core/camera.js
-import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
+import * as THREE from 'three';
 
 export function createCamera(container) {
   const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);

@@ -1,5 +1,5 @@
 // src/core/renderer.js
-import * as THREE from 'https://unpkg.com/three@0.159.0/build/three.module.js';
+import * as THREE from 'three';
 
 export function createRenderer(container) {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
