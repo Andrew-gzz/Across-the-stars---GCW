@@ -1,0 +1,30 @@
+{
+  "name": "across-the-stars---gcw",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Andrew-gzz/Across-the-stars---GCW.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Andrew-gzz/Across-the-stars---GCW/issues"
+  },
+  "homepage": "https://github.com/Andrew-gzz/Across-the-stars---GCW#readme",
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
+

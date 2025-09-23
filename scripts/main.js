@@ -1,15 +1,15 @@
 // src/main.js
-import * as THREE         from 'https://unpkg.com/three@0.159.0/build/three.module.js';
+import * as THREE         from 'three';
 
 import { createRenderer } from './core/renderer.js';
-import { createScene, setSceneBackground }    from './core/scene.js';
+import { createScene }    from './core/scene.js';
 import { createCamera }   from './core/camera.js';
 import { Loop }           from './core/loop.js';
 import { Resizer }        from './core/resizer.js';
-//import * as ASSET from './core/assets.js'; 
+import { load }          from './core/assets.js';  
 //import { createPhysics }  from './systems/physics.js';      // opcional
 //import { createCollisions } from './systems/collisions.js';  // opcional
-//import { createControls } from './systems/controls.js';      // opcional
+import { createControls } from './systems/controls.js';      // opcional
 //import { createPlayer }     from './features/player.js'; //de momento no hay player
 //import { createEnvironment } from './features/environment.js';
 
@@ -35,12 +35,15 @@ scene.add(grid);
 const loop = new Loop(camera, scene, renderer);
 loop.start();
 
+// sistemas
+const controls   = createControls(camera, renderer.domElement);
+loop.addSystem((dt) => controls.update?.(dt));
 /*
 
 // sistemas
 const physics    = createPhysics();        // world.step(dt)… (si usas)
 const collisions = createCollisions(scene);// cheques AABB, raycasts…
-const controls   = createControls(camera, renderer.domElement);
+
 
 // entidades
 const env    = createEnvironment(assets);  // luces, piso, etc.
