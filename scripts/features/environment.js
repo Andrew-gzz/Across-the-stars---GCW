@@ -10,13 +10,5 @@ export function createEnvironment(/* assets */) {
   dir.position.set(5,10,7);
   group.add(dir);
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(50, 50),
-    new THREE.MeshStandardMaterial({ color: 0x225555 })
-  );
-  ground.rotation.x = -Math.PI / 2;
-  ground.position.y = -2;
-  group.add(ground);
-
   return { group };
 }

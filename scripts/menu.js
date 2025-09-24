@@ -16,3 +16,10 @@ function exitGame() {
     alert("Salir al menú principal");
     window.location.href = "index.html";
 }
+
+function options() {
+    const confirmOptions = confirm("¿Desea continuar? Los cambios no se guardarán.");
+    if (confirmOptions) {
+        window.location.href = "opciones.html";
+    }
+}
