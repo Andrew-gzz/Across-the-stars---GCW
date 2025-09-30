@@ -1,0 +1,7 @@
+to use this proyect first do this:
+1. open terminal in Acrooss-the-stars---GCW folder and run:
+    a.- npm install (this istall all the dependencies from package.json)
+2. then for starting the proyect run:
+    b.-npm run dev (this open the proyect in your browser)
+
+    note: all of this just to use three.js

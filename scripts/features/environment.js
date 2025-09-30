@@ -1,5 +1,10 @@
 // src/features/environment.js
 import * as THREE from 'three';
+/**
+ * Aplica una textura HDRI a la escena.
+ * @param {THREE.Scene} scene 
+ * @param {string} path
+ */
 export function createEnvironment(/* assets */) {
   const group = new THREE.Group();
 
@@ -12,3 +17,14 @@ export function createEnvironment(/* assets */) {
 
   return { group };
 }
+export function createHDRI(scene, path){
+  const loader = new THREE.TextureLoader();
+  const texture = loader.load(
+    path,
+    () => {
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.SRGBColorSpace;
+      scene.background = texture;
+    });
+}
+   
