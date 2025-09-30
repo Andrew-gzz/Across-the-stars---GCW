@@ -7,7 +7,7 @@ import { Loop }           from './core/loop.js';
 import { Resizer }        from './core/resizer.js';
 import { loadModel }      from './core/assets.js';  
 import { createControls } from './systems/controls.js';
-import { createEnvironment } from './features/environment.js';
+import { createEnvironment, createHDRI } from './features/environment.js';
 
 const container = document.querySelector('.game-area');
 if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
@@ -22,7 +22,8 @@ new Resizer(container, camera, renderer);   // ajusta tamaños al contenedor
 const grid = new THREE.GridHelper(30, 30); // malla de referencia
 scene.add(grid);
 
-// Entorno (luces y suelo)
+// Entorno (luces, suelo y fondo)
+createHDRI(scene, '/Img/Space.png');
 const { group: environment } = createEnvironment();
 scene.add(environment);
 
