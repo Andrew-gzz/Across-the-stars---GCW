@@ -21,7 +21,8 @@ export class Player {
     const mesh = new THREE.Mesh(geometry, material);
     group.add(mesh);
 
-    return { group };
+    //return { group };
+    return mesh;
   }
 }
 
