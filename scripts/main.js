@@ -1,41 +1,101 @@
 import * as THREE from 'three';
 
+// Core
 import { createRenderer } from './core/renderer.js';
 import { createScene }    from './core/scene.js';
-import { createCamera }   from './core/camera.js';
+import { createCamera, ThirdPersonCamera }   from './core/camera.js';
 import { Loop }           from './core/loop.js';
 import { Resizer }        from './core/resizer.js';
+
+// Assets & Features
 import { loadModel }      from './core/assets.js';  
-import { createControls } from './systems/controls.js';
 import { createEnvironment, createHDRI } from './features/environment.js';
+import { Player } from './features/player.js';
 
-const container = document.querySelector('.game-area');
-if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
+// Systems
+import { BasicCharacterController } from './systems/controls.js';
+import { createPhysics, createBoxShapeFromMesh } from './systems/physics.js';
 
-// Núcleo
-const scene    = createScene();
-const camera   = createCamera(container);
-const renderer = createRenderer(container);
+// Physics engine
+import * as CANNON from 'cannon-es';
 
-// Utilidades
-new Resizer(container, camera, renderer);   // ajusta tamaños al contenedor
-const grid = new THREE.GridHelper(30, 30); // malla de referencia
-scene.add(grid);
+class Main{
+  constructor() {
+    this._Initialize();
+  }
 
-// Entorno (luces, suelo y fondo)
-createHDRI(scene, '/Img/Space.png');
-const { group: environment } = createEnvironment();
-scene.add(environment);
+  async _Initialize() {
+    //Contenedor
+    const container = document.querySelector('.game-area');
+    if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
+    this.container = container;
+    //Nucleo del motor
+    this.scene    = createScene();
+    this.camera   = createCamera(container);
+    this.renderer = createRenderer(container);
+    this.loop     = new Loop(this.camera, this.scene, this.renderer);
+    //Utilidades
+    new Resizer(container, this.camera, this.renderer);
+    //Entorno
+    createHDRI(this.scene, '/Img/Space.png');
+    const { group: environment } = createEnvironment();
+    this.scene.add(environment);
+    //Física
+    this.physics = createPhysics();
+    //Suelo
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshStandardMaterial({ color: 0xFFFFFF })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    this.scene.add(ground);
 
-// Carga de assets
-const modelo = await loadModel('../models/scene.gltf');
-modelo.scale.set(10,10,10)
-scene.add(modelo);
+    const groundShape = new CANNON.Plane();
+    const groundBody  = this.physics.add(ground, groundShape, 0);
+    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+    //Assets
+    const modelo = await loadModel('../models/scene.gltf');
+    modelo.scale.set(10, 10, 10);
+    modelo.position.set(0, 2.5, 0);
+    this.scene.add(modelo);
 
-// Loop de actualización y render
-const loop = new Loop(camera, scene, renderer);
-loop.start();
+    const cheeseShape = createBoxShapeFromMesh(modelo);
+    this.physics.add(modelo, cheeseShape, 20);
+    //Personaje
+    const params = {
+      camera: this.camera,
+      scene: this.scene,
+    };
+    this._characterController = new BasicCharacterController(params);
 
-// sistemas
-const controls = createControls(camera, renderer.domElement);
-loop.addSystem((dt) => controls.update?.(dt));
+    // Cámara en tercera persona
+    this._thirdPersonCamera = new ThirdPersonCamera({
+      camera: this.camera,
+      target: this._characterController,
+    });
+    //Loop principal
+    this.loop.addSystem((dt) => this.physics.update(dt));
+    this.loop.addSystem((dt) => this._characterController.Update(dt));
+    this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+    this.loop.start();
+  }
+  async _LoadAnimatedModel() {
+    const params = {
+      camera: this.camera,
+      scene: this.scene,
+    }
+    this._controls = new BasicCharacterController(params);
+
+    this._thirdPersonCamera = new ThirdPersonCamera({
+      camera: this.camera,
+      target: this._controls,
+    });
+  }
+  
+}
+
+let _APP = null;
+
+window.addEventListener('DOMContentLoaded', () => {
+  _APP = new Main();
+});

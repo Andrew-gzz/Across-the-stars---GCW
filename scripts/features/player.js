@@ -1,24 +1,28 @@
 // src/features/player.js
 import * as THREE from 'three';
 
-export function createPlayer(assets) {
-  const group = new THREE.Group();
-
-  // placeholder: un cubo como jugador
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1,1,1),
-    new THREE.MeshStandardMaterial({ color: 0xff6f00 })
-  );
-  group.add(mesh);
-
-  // si tenías modelo GLTF:
-  // if (assets.models.player) group.add(assets.models.player);
-
-  let t = 0;
-  function update(dt) {
-    t += dt;
-    group.rotation.y += dt;      // animación dummy
+export class Player {
+    constructor() {
+    this.group = new THREE.Group();
   }
 
-  return { group, update };
+  setPosition(x, y, z) {
+    this.group.position.set(x, y, z);
+  }
+  createPlayer(assets) {
+    const group = new THREE.Group();
+
+    // placeholder: una esfera como jugador
+    const radius = 2;
+    const widthSegments = 12;
+    const heightSegments = 8;
+    const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
+    const material = new THREE.MeshStandardMaterial({ color: 0xff6f00 });
+    const mesh = new THREE.Mesh(geometry, material);
+    group.add(mesh);
+
+    //return { group };
+    return mesh;
+  }
 }
+
