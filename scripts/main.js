@@ -3,7 +3,7 @@ import * as THREE from 'three';
 // Core
 import { createRenderer } from './core/renderer.js';
 import { createScene }    from './core/scene.js';
-import { createCamera }   from './core/camera.js';
+import { createCamera, ThirdPersonCamera }   from './core/camera.js';
 import { Loop }           from './core/loop.js';
 import { Resizer }        from './core/resizer.js';
 
@@ -13,99 +13,89 @@ import { createEnvironment, createHDRI } from './features/environment.js';
 import { Player } from './features/player.js';
 
 // Systems
-import { createControls, createPlayerControls } from './systems/controls.js';
+import { BasicCharacterController } from './systems/controls.js';
 import { createPhysics, createBoxShapeFromMesh } from './systems/physics.js';
 
 // Physics engine
 import * as CANNON from 'cannon-es';
 
-// --------------------------------------------------
-// Inicialización del contenedor
-// --------------------------------------------------
-const container = document.querySelector('.game-area');
-if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
+class Main{
+  constructor() {
+    this._Initialize();
+  }
 
-// --------------------------------------------------
-// Núcleo del motor
-// --------------------------------------------------
-const scene    = createScene();
-const camera   = createCamera(container);
-const renderer = createRenderer(container);
-const loop     = new Loop(camera, scene, renderer);
+  async _Initialize() {
+    //Contenedor
+    const container = document.querySelector('.game-area');
+    if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
+    this.container = container;
+    //Nucleo del motor
+    this.scene    = createScene();
+    this.camera   = createCamera(container);
+    this.renderer = createRenderer(container);
+    this.loop     = new Loop(this.camera, this.scene, this.renderer);
+    //Utilidades
+    new Resizer(container, this.camera, this.renderer);
+    //Entorno
+    createHDRI(this.scene, '/Img/Space.png');
+    const { group: environment } = createEnvironment();
+    this.scene.add(environment);
+    //Física
+    this.physics = createPhysics();
+    //Suelo
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100),
+      new THREE.MeshStandardMaterial({ color: 0xFFFFFF })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    this.scene.add(ground);
 
-// --------------------------------------------------
-// Física
-// --------------------------------------------------
-const physics = createPhysics();
+    const groundShape = new CANNON.Plane();
+    const groundBody  = this.physics.add(ground, groundShape, 0);
+    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+    //Assets
+    const modelo = await loadModel('../models/scene.gltf');
+    modelo.scale.set(10, 10, 10);
+    modelo.position.set(0, 2.5, 0);
+    this.scene.add(modelo);
 
-// --------------------------------------------------
-// Sistemas de controles
-// --------------------------------------------------
-const controls = createControls(camera, renderer.domElement);
-// Controles del jugador (teclado) — se añadirán después de crear playerBody
-// --------------------------------------------------
-// Utilidades y helpers
-// --------------------------------------------------
-new Resizer(container, camera, renderer);   // ajusta tamaños al contenedor
-const grid = new THREE.GridHelper(30, 30); // malla de referencia
-scene.add(grid);
+    const cheeseShape = createBoxShapeFromMesh(modelo);
+    this.physics.add(modelo, cheeseShape, 20);
+    //Personaje
+    const params = {
+      camera: this.camera,
+      scene: this.scene,
+    };
+    this._characterController = new BasicCharacterController(params);
 
-// --------------------------------------------------
-// Entorno (luces, suelo, fondo)
-// --------------------------------------------------
-createHDRI(scene, '/Img/Space.png');
-const { group: environment } = createEnvironment();
-scene.add(environment);
+    // Cámara en tercera persona
+    this._thirdPersonCamera = new ThirdPersonCamera({
+      camera: this.camera,
+      target: this._characterController,
+    });
+    //Loop principal
+    this.loop.addSystem((dt) => this.physics.update(dt));
+    this.loop.addSystem((dt) => this._characterController.Update(dt));
+    this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+    this.loop.start();
+  }
+  async _LoadAnimatedModel() {
+    const params = {
+      camera: this.camera,
+      scene: this.scene,
+    }
+    this._controls = new BasicCharacterController(params);
 
-// --------------------------------------------------
-// Jugador
-// --------------------------------------------------
-const player = new Player();
-const playerMesh = player.createPlayer();
-playerMesh.position.set(0, 15, 0);
-scene.add(playerMesh);
+    this._thirdPersonCamera = new ThirdPersonCamera({
+      camera: this.camera,
+      target: this._controls,
+    });
+  }
+  
+}
 
-// Física del jugador
-const playerShape = new CANNON.Sphere(2);
-const playerBody  = physics.add(playerMesh, playerShape, 1);
+let _APP = null;
 
-
-// --------------------------------------------------
-// Carga de assets (ejemplo: modelo externo)
-// --------------------------------------------------
-const modelo = await loadModel('../models/scene.gltf');
-modelo.scale.set(10,10,10);
-modelo.position.set(0,2.5,0);
-scene.add(modelo);
-
-// Física del modelo
-const cheeseShape = createBoxShapeFromMesh(modelo);
-physics.add(modelo, cheeseShape, 20);
-
-// --------------------------------------------------
-// Suelo
-// --------------------------------------------------
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(100, 100),
-  new THREE.MeshStandardMaterial({ color: 0xFFFFFF })
-);
-ground.rotation.x = -Math.PI / 2;
-scene.add(ground);
-
-// Física del suelo
-const groundShape = new CANNON.Plane();
-const groundBody  = physics.add(ground, groundShape, 0);
-groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-
-// --------------------------------------------------
-// Controles del jugador
-// --------------------------------------------------
-const playerControls = createPlayerControls(camera, playerMesh, playerBody);
-
-// --------------------------------------------------
-// Loop principal
-// --------------------------------------------------
-loop.addSystem((dt) => physics.update(dt));
-loop.addSystem((dt) => controls.update?.(dt));
-loop.addSystem((dt) => playerControls.update(dt));
-loop.start();
+window.addEventListener('DOMContentLoaded', () => {
+  _APP = new Main();
+});
