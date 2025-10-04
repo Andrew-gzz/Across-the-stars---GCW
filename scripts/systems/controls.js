@@ -38,9 +38,9 @@ export class BasicCharacterController {
   _LoadModels() {
     const loader = new FBXLoader();
     loader.setPath('../models/');
-    loader.load('PlayerModel.fbx', (fbx) => {
-      fbx.scale.setScalar(0.1);
-      fbx.traverse(c => {
+    loader.load('Bernice.fbx', (fbx) => {
+      fbx.scale.setScalar(0.15);
+      fbx.traverse(c => { 
         c.castShadow = true;
       });
 
@@ -110,7 +110,7 @@ export class BasicCharacterController {
 
     const acc = this._acceleration.clone();
     if (this._input._keys.shift) {
-      acc.multiplyScalar(2.0);
+      acc.multiplyScalar(5.0);
     }
 
     if (this._stateMachine._currentState.Name == 'dance') {

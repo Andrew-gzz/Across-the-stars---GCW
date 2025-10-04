@@ -37,7 +37,7 @@ class Main{
     //Utilidades
     new Resizer(container, this.camera, this.renderer);
     //Entorno
-    createHDRI(this.scene, '/Img/Space.png');
+    createHDRI(this.scene, '/models/Level2/HDRi.jpg');
     const { group: environment } = createEnvironment();
     this.scene.add(environment);
     //Física
