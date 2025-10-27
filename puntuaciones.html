@@ -1,41 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Puntuaciones</title>
-<link rel="icon" type="image/png" href="Img/estrella.webp">
+    <link rel="icon" type="image/png" href="Img/estrella.webp">
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Secular+One&display=swap" rel="stylesheet">
+
+    <meta property="og:url" content="https://cecil-untrailed-bifilarly.ngrok-free.dev/puntuaciones.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Across The Stars" />
+    <meta property="og:description" content="Look at my score" />
+    <meta property="og:image" content="https://cecil-untrailed-bifilarly.ngrok-free.dev/img/BG1.png" />
 </head>
 
-<body style="background-image: url('Img/BG3.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
-    <h2 class="title2">Puntuaciones</h2>  
+<body
+    style="background-image: url('Img/BG3.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
+
+    <script src="scripts/api/facebook.js"></script>
+
+    <div id="fb-root"></div>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+
+    <h2 class="title2">Puntuaciones</h2>
     <table>
         <tr>
-        <th>Jugador</th>
-        <th>Puntos</th>
+            <th>Jugador</th>
+            <th>Puntos</th>
         </tr>
         <tr>
-        <td>Jugador 1</td>
-        <td>2500</td>
+            <td>Jugador 1</td>
+            <td>2500</td>
         </tr>
         <tr>
-        <td>Jugador 2</td>
-        <td>1800</td>
+            <td>Jugador 2</td>
+            <td>1800</td>
         </tr>
         <tr>
-        <td>Jugador 3</td>
-        <td>1200</td>
+            <td>Jugador 3</td>
+            <td>1200</td>
         </tr>
         <tr>
-        <td>Jugador 4</td>
-        <td>950</td>
+            <td>Jugador 4</td>
+            <td>950</td>
         </tr>
     </table>
-  <a href="index.html" class="btn">Volver al Menú</a> 
     
+    <div id="fb-root"></div>
+    <script async defer crossorigin="anonymous"
+        src="https://connect.facebook.net/es_LA/sdk.js#xfbml=1&version=v24.0&appId=2062336774513098"></script>
+
+    <div 
+        class="fb-share-button" 
+        data-href="https://cecil-untrailed-bifilarly.ngrok-free.dev/puntuaciones.html" 
+        data-layout="" 
+        data-size="">
+        <a href="index.html" class="btn">Volver al Menú</a> 
+        <a 
+            target="_blank"
+            href="https://www.facebook.com/sharer/sharer.php?u=https://cecil-untrailed-bifilarly.ngrok-free.dev/puntuaciones.html"
+            class="fb-xfbml-parse-ignore btnFacebook">
+            Compartir
+        </a>
+    </div>
 </body>
+
 </html>
