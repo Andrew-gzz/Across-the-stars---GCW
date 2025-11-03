@@ -1,5 +1,5 @@
 // src/core/camera.js
-import * as THREE from 'three';
+/*import * as THREE from 'three';
 
 export function createCamera(container) {
   const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
@@ -41,4 +41,75 @@ export class ThirdPersonCamera {
     this._camrea.position.copy(this._currentPosition);
     this._camrea.lookAt(this._currentLookat);
   }
-};
+}; */
+
+
+
+// src/core/camera.js
+import * as THREE from 'three';
+
+export function createCamera(container) {
+  const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+  camera.position.set(0, 8, 15);
+  return camera;
+}
+
+export class ThirdPersonCamera {
+  constructor(params) {
+    this._params = params;
+    this._camera = params.camera;
+
+    this._currentPosition = new THREE.Vector3();
+    this._currentLookat = new THREE.Vector3();
+  }
+
+  //Posición de la cámara arriba y mirando hacia abajo en 45°
+  _CalculateIdealOffset() {
+    const idealOffset = new THREE.Vector3(0, 20, -20);
+    idealOffset.applyQuaternion(this._params.target.Rotation);
+    idealOffset.add(this._params.target.Position);
+    return idealOffset;
+  }
+
+  _CalculateIdealLookat() {
+    const idealLookat = new THREE.Vector3(0, 2, 10);
+    idealLookat.applyQuaternion(this._params.target.Rotation);
+    idealLookat.add(this._params.target.Position);
+    return idealLookat;
+  }
+
+ Update(timeElapsed) {
+    if (this._params.target && this._params.target._target) {
+      const bernice = this._params.target._target;
+
+      // Evita cualquier rotación acumulada
+      bernice.rotation.set(0, Math.PI, 0);
+      bernice.quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));
+
+      // 🔹 Movimiento lateral sin rotar el cuerpo
+      if (this._params.target._input) {
+        const moveSpeed = 0.2;
+        if (this._params.target._input._keys.left) {
+          bernice.position.x -= moveSpeed; 
+        }
+        if (this._params.target._input._keys.right) {
+          bernice.position.x += moveSpeed; 
+        }
+      }
+    }
+
+    const idealOffset = this._CalculateIdealOffset();
+    const idealLookat = this._CalculateIdealLookat();
+
+    const t = 1.0 - Math.pow(0.001, timeElapsed);
+
+    this._currentPosition.lerp(idealOffset, t);
+    this._currentLookat.lerp(idealLookat, t);
+
+    this._camera.position.copy(this._currentPosition);
+    this._camera.lookAt(this._currentLookat);
+
+    
+  }
+}
+

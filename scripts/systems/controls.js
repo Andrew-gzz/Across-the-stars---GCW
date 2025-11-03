@@ -39,13 +39,14 @@ export class BasicCharacterController {
     const loader = new FBXLoader();
     loader.setPath('../models/');
     loader.load('Bernice.fbx', (fbx) => {
-      fbx.scale.setScalar(0.15);
+      fbx.scale.setScalar(0.05);
       fbx.traverse(c => { 
         c.castShadow = true;
       });
 
       this._target = fbx;
       this._params.scene.add(this._target);
+      this._target.rotation.y = Math.PI; 
 
       this._mixer = new THREE.AnimationMixer(this._target);
 
