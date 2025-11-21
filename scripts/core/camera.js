@@ -65,14 +65,14 @@ export class ThirdPersonCamera {
 
   //Posición de la cámara arriba y mirando hacia abajo en 45°
   _CalculateIdealOffset() {
-    const idealOffset = new THREE.Vector3(0, 20, -20);
+    const idealOffset = new THREE.Vector3(0, 30, -15);
     idealOffset.applyQuaternion(this._params.target.Rotation);
     idealOffset.add(this._params.target.Position);
     return idealOffset;
   }
 
   _CalculateIdealLookat() {
-    const idealLookat = new THREE.Vector3(0, 2, 10);
+    const idealLookat = new THREE.Vector3(0, 2, 7);
     idealLookat.applyQuaternion(this._params.target.Rotation);
     idealLookat.add(this._params.target.Position);
     return idealLookat;

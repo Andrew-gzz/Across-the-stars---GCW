@@ -12,18 +12,19 @@ export async function loadLevel3(scene) {
   const groundGeometry = new THREE.BoxGeometry(30, 0.5, 1000); // más ancho y largo
   const groundMaterial = new THREE.MeshStandardMaterial({ color: '#0369a1' });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  ground.position.set(0, 0, -490); // más cerca del centro visual
+  ground.position.set(0, 0, 0);
   ground.receiveShadow = true;
   scene.add(ground);
 
   const bernice = scene.getObjectByName('Bernice');
   if (bernice) {
-    bernice.position.set(0, 0, 25);
+    bernice.position.set(0, 0, 20);
     bernice.scale.setScalar(0.18);
     bernice.rotation.y = Math.PI; 
   } else {
     console.warn('Bernice aún no está cargada en la escena.');
   }
+  
 
   class Box extends THREE.Mesh {
     constructor({ width, height, depth, color = 'red', position, velocity, zAcceleration }) {
