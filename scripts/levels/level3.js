@@ -9,10 +9,11 @@ export async function loadLevel3(scene) {
   dirLight.position.set(50, 100, 50);
   scene.add(dirLight);
 
-  const groundGeometry = new THREE.BoxGeometry(30, 0.5, 1000); // más ancho y largo
+  const groundGeometry = new THREE.BoxGeometry(40, 0.5, 200); // más ancho y largo MEDIDAS OG
   const groundMaterial = new THREE.MeshStandardMaterial({ color: '#0369a1' });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
   ground.position.set(0, 0, 0);
+  ground.rotation.set(0, 0, 0); // <-- recto completamente
   ground.receiveShadow = true;
   scene.add(ground);
 

@@ -43,7 +43,7 @@ export class BasicCharacterController {
       fbx.traverse(c => { 
         c.castShadow = true;
       });
-
+      
       this._target = fbx;
       this._params.scene.add(this._target);
       this._target.rotation.y = Math.PI; 
