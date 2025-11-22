@@ -1,101 +1,115 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+
+// Niveles
+import { loadLevel1 } from './levels/level1.js';
+import { loadLevel2 } from './levels/level2.js';
+import { loadLevel3 } from './levels/level3.js';
 
 // Core
 import { createRenderer } from './core/renderer.js';
-import { createScene }    from './core/scene.js';
-import { createCamera, ThirdPersonCamera }   from './core/camera.js';
-import { Loop }           from './core/loop.js';
-import { Resizer }        from './core/resizer.js';
+import { createScene } from './core/scene.js';
+import { createCamera, ThirdPersonCamera } from './core/camera.js';
+import { Loop } from './core/loop.js';
+import { Resizer } from './core/resizer.js';
 
-// Assets & Features
-import { loadModel }      from './core/assets.js';  
+// Features
 import { createEnvironment, createHDRI } from './features/environment.js';
-import { Player } from './features/player.js';
 
 // Systems
 import { BasicCharacterController } from './systems/controls.js';
-import { createPhysics, createBoxShapeFromMesh } from './systems/physics.js';
+import { createPhysics } from './systems/physics.js';
 
-// Physics engine
-import * as CANNON from 'cannon-es';
 
-class Main{
-  constructor() {
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const level = parseInt(urlParams.get('level')) || 1;
+  new Main(level);
+});
+
+
+class Main {
+  constructor(level = 1) {
+    this.level = level;
     this._Initialize();
   }
 
   async _Initialize() {
-    //Contenedor
+
+    // Contenedor
     const container = document.querySelector('.game-area');
     if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
+
     this.container = container;
-    //Nucleo del motor
-    this.scene    = createScene();
-    this.camera   = createCamera(container);
+    this.scene = createScene();
+    this.camera = createCamera(container);
     this.renderer = createRenderer(container);
-    this.loop     = new Loop(this.camera, this.scene, this.renderer);
-    //Utilidades
+    this.loop = new Loop(this.camera, this.scene, this.renderer);
+
     new Resizer(container, this.camera, this.renderer);
-    //Entorno
+
+    // HDRI + ambiente
     createHDRI(this.scene, '/models/Level2/HDRi.jpg');
     const { group: environment } = createEnvironment();
     this.scene.add(environment);
-    //Física
+
+    // Physics
     this.physics = createPhysics();
-    //Suelo
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(100, 100),
-      new THREE.MeshStandardMaterial({ color: 0xFFFFFF })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    this.scene.add(ground);
 
-    const groundShape = new CANNON.Plane();
-    const groundBody  = this.physics.add(ground, groundShape, 0);
-    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
-    //Assets
-    const modelo = await loadModel('../models/scene.gltf');
-    modelo.scale.set(10, 10, 10);
-    modelo.position.set(0, 2.5, 0);
-    this.scene.add(modelo);
+    // -------------------------------------------
+    // 1) CARGAR NIVEL Y OBTENER BERNICE
+    // -------------------------------------------
+    console.log("Cargando nivel:", this.level);
 
-    const cheeseShape = createBoxShapeFromMesh(modelo);
-    this.physics.add(modelo, cheeseShape, 20);
-    //Personaje
-    const params = {
+    let result = null;
+
+    switch (this.level) {
+      case 1:
+        result = await loadLevel1(this.scene, this.physics);
+        break;
+
+      case 2:
+        result = await loadLevel2(this.scene, this.physics);
+        break;
+
+      case 3:
+        result = await loadLevel3(this.scene, this.physics);
+        break;
+
+      default:
+        result = await loadLevel1(this.scene, this.physics);
+    }
+
+    if (!result || !result.bernice) {
+      throw new Error("Error: el nivel no devolvió la Bernice.");
+    }
+
+    this.bernice = result.bernice;
+    console.log("Bernice cargada correctamente:", this.bernice);
+
+
+    // -------------------------------------------
+    // 2) CREAR CONTROLADOR Y CÁMARA
+    // -------------------------------------------
+    this._characterController = new BasicCharacterController({
       camera: this.camera,
       scene: this.scene,
-    };
-    this._characterController = new BasicCharacterController(params);
+      bernice: this.bernice,   // ← AQUÍ SE PASA LA BERNICE CORRECTA
+    });
 
-    // Cámara en tercera persona
     this._thirdPersonCamera = new ThirdPersonCamera({
       camera: this.camera,
       target: this._characterController,
     });
-    //Loop principal
+
+
+    // -------------------------------------------
+    // 3) SISTEMAS DEL LOOP
+    // -------------------------------------------
     this.loop.addSystem((dt) => this.physics.update(dt));
     this.loop.addSystem((dt) => this._characterController.Update(dt));
     this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+
     this.loop.start();
   }
-  async _LoadAnimatedModel() {
-    const params = {
-      camera: this.camera,
-      scene: this.scene,
-    }
-    this._controls = new BasicCharacterController(params);
-
-    this._thirdPersonCamera = new ThirdPersonCamera({
-      camera: this.camera,
-      target: this._controls,
-    });
-  }
-  
 }
-
-let _APP = null;
-
-window.addEventListener('DOMContentLoaded', () => {
-  _APP = new Main();
-});

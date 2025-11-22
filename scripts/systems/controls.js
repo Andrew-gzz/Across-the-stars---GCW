@@ -1,27 +1,29 @@
 // src/systems/controls.js
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as THREE from 'three';
-import { FBXLoader } from 'three/examples/jsm/Addons.js';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
-//NEW FUNTIONS FOR CHARACTER CONTROLLER AND ANIMATIONS
+// ======= PROXY =======
 class BasicCharacterControllerProxy {
   constructor(animations) {
     this._animations = animations;
   }
-
   get animations() {
     return this._animations;
   }
-};
+}
 
-
+// ======= CONTROLADOR PRINCIPAL =======
 export class BasicCharacterController {
   constructor(params) {
     this._Init(params);
   }
 
   _Init(params) {
-    this._params = params;
+    this._params = params;   // { scene, camera, bernice }
+
+    // aquí usamos la Bernice cargada en level3.js
+    this._target = this._params.bernice;
+
     this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
     this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
     this._velocity = new THREE.Vector3(0, 0, 0);
@@ -30,61 +32,54 @@ export class BasicCharacterController {
     this._animations = {};
     this._input = new BasicCharacterControllerInput();
     this._stateMachine = new CharacterFSM(
-        new BasicCharacterControllerProxy(this._animations));
+      new BasicCharacterControllerProxy(this._animations)
+    );
 
-    this._LoadModels();
+    // cargar solo animaciones (NO Bernice)
+    this._LoadAnimations();
   }
 
-  _LoadModels() {
-    const loader = new FBXLoader();
-    loader.setPath('../models/');
-    loader.load('Bernice.fbx', (fbx) => {
-      fbx.scale.setScalar(0.15);
-      fbx.traverse(c => { 
-        c.castShadow = true;
-      });
+  // ======= CARGAR ANIMACIONES FBX =======
+  _LoadAnimations() {
+    this._mixer = new THREE.AnimationMixer(this._target);
 
-      this._target = fbx;
-      this._params.scene.add(this._target);
+    this._manager = new THREE.LoadingManager();
+    this._manager.onLoad = () => {
+      this._stateMachine.SetState('idle');
+    };
 
-      this._mixer = new THREE.AnimationMixer(this._target);
+    const _OnLoad = (animName, anim) => {
+      const clip = anim.animations[0];
+      const action = this._mixer.clipAction(clip);
+      this._animations[animName] = { clip, action };
+    };
 
-      this._manager = new THREE.LoadingManager();
-      this._manager.onLoad = () => {
-        this._stateMachine.SetState('idle');
-      };
+    const loader = new FBXLoader(this._manager);
+    loader.setPath('/models/');
 
-      const _OnLoad = (animName, anim) => {
-        const clip = anim.animations[0];
-        const action = this._mixer.clipAction(clip);
-  
-        this._animations[animName] = {
-          clip: clip,
-          action: action,
-        };
-      };
-
-      const loader = new FBXLoader(this._manager);
-      loader.setPath('../models/');
-      loader.load('walk.fbx', (a) => { _OnLoad('walk', a); });
-      loader.load('run.fbx', (a) => { _OnLoad('run', a); });
-      loader.load('idle.fbx', (a) => { _OnLoad('idle', a); });
-      loader.load('dance.fbx', (a) => { _OnLoad('dance', a); });
-    });
+    loader.load('walk.fbx', (a) => _OnLoad('walk', a));
+    loader.load('run.fbx', (a) => _OnLoad('run', a));
+    loader.load('idle.fbx', (a) => _OnLoad('idle', a));
+    loader.load('dance.fbx', (a) => _OnLoad('dance', a));
   }
 
-  get Position() {
-    return this._position;
-  }
+  get Position() { return this._position; }
+  get Rotation() { return this._target.quaternion; }
 
-  get Rotation() {
-    if (!this._target) {
-      return new THREE.Quaternion();
-    }
-    return this._target.quaternion;
-  }
-
+  // ======= UPDATE GENERAL =======
   Update(timeInSeconds) {
+
+    if (this._target.isFrozen) {
+      // bloquear movimiento
+      Object.keys(this._input._keys).forEach(k => this._input._keys[k] = false);
+      this._velocity.set(0, 0, 0);
+
+      if (this._stateMachine)
+        this._stateMachine.SetState('idle');
+
+      return;
+    }
+
     if (!this._stateMachine._currentState) {
       return;
     }
@@ -93,13 +88,14 @@ export class BasicCharacterController {
 
     const velocity = this._velocity;
     const frameDecceleration = new THREE.Vector3(
-        velocity.x * this._decceleration.x,
-        velocity.y * this._decceleration.y,
-        velocity.z * this._decceleration.z
+      velocity.x * this._decceleration.x,
+      velocity.y * this._decceleration.y,
+      velocity.z * this._decceleration.z
     );
+
     frameDecceleration.multiplyScalar(timeInSeconds);
-    frameDecceleration.z = Math.sign(frameDecceleration.z) * Math.min(
-        Math.abs(frameDecceleration.z), Math.abs(velocity.z));
+    frameDecceleration.z = Math.sign(frameDecceleration.z) *
+      Math.min(Math.abs(frameDecceleration.z), Math.abs(velocity.z));
 
     velocity.add(frameDecceleration);
 
@@ -109,122 +105,76 @@ export class BasicCharacterController {
     const _R = controlObject.quaternion.clone();
 
     const acc = this._acceleration.clone();
-    if (this._input._keys.shift) {
+    if (this._input._keys.shift)
       acc.multiplyScalar(5.0);
-    }
 
-    if (this._stateMachine._currentState.Name == 'dance') {
-      acc.multiplyScalar(0.0);
-    }
-
-    if (this._input._keys.forward) {
+    // ---- Movimiento ----
+    if (this._input._keys.forward)
       velocity.z += acc.z * timeInSeconds;
-    }
-    if (this._input._keys.backward) {
+    if (this._input._keys.backward)
       velocity.z -= acc.z * timeInSeconds;
-    }
+
     if (this._input._keys.left) {
       _A.set(0, 1, 0);
-      _Q.setFromAxisAngle(_A, 4.0 * Math.PI * timeInSeconds * this._acceleration.y);
+      _Q.setFromAxisAngle(_A, 4.0 * Math.PI * timeInSeconds * acc.y);
       _R.multiply(_Q);
     }
     if (this._input._keys.right) {
       _A.set(0, 1, 0);
-      _Q.setFromAxisAngle(_A, 4.0 * -Math.PI * timeInSeconds * this._acceleration.y);
+      _Q.setFromAxisAngle(_A, -4.0 * Math.PI * timeInSeconds * acc.y);
       _R.multiply(_Q);
     }
 
     controlObject.quaternion.copy(_R);
 
-    const oldPosition = new THREE.Vector3();
-    oldPosition.copy(controlObject.position);
-
+    // ---- Calcular desplazamiento ----
     const forward = new THREE.Vector3(0, 0, 1);
-    forward.applyQuaternion(controlObject.quaternion);
-    forward.normalize();
-
-    const sideways = new THREE.Vector3(1, 0, 0);
-    sideways.applyQuaternion(controlObject.quaternion);
-    sideways.normalize();
-
-    sideways.multiplyScalar(velocity.x * timeInSeconds);
+    forward.applyQuaternion(controlObject.quaternion).normalize();
     forward.multiplyScalar(velocity.z * timeInSeconds);
 
     controlObject.position.add(forward);
-    controlObject.position.add(sideways);
 
     this._position.copy(controlObject.position);
 
-    if (this._mixer) {
+    if (this._mixer)
       this._mixer.update(timeInSeconds);
-    }
   }
-};
+}
 
+// ======= INPUT KEYS =======
 class BasicCharacterControllerInput {
   constructor() {
-    this._Init();    
+    this._keys = { forward: false, backward: false, left: false, right: false, space: false, shift: false };
+    document.addEventListener('keydown', (e) => this._onKeyDown(e));
+    document.addEventListener('keyup', (e) => this._onKeyUp(e));
   }
 
-  _Init() {
-    this._keys = {
-      forward: false,
-      backward: false,
-      left: false,
-      right: false,
-      space: false,
-      shift: false,
-    };
-    document.addEventListener('keydown', (e) => this._onKeyDown(e), false);
-    document.addEventListener('keyup', (e) => this._onKeyUp(e), false);
-  }
-
-  _onKeyDown(event) {
-    switch (event.keyCode) {
-      case 87: // w
-        this._keys.forward = true;
-        break;
-      case 65: // a
-        this._keys.left = true;
-        break;
-      case 83: // s
-        this._keys.backward = true;
-        break;
-      case 68: // d
-        this._keys.right = true;
-        break;
-      case 32: // SPACE
-        this._keys.space = true;
-        break;
-      case 16: // SHIFT
-        this._keys.shift = true;
-        break;
+  _onKeyDown(e) {
+    switch (e.key.toLowerCase()) {
+      case 'w': this._keys.forward = true; break;
+      case 's': this._keys.backward = true; break;
+      case 'a': this._keys.left = true; break;
+      case 'd': this._keys.right = true; break;
+      case ' ': this._keys.space = true; break;
+      case 'shift': this._keys.shift = true; break;
     }
   }
 
-  _onKeyUp(event) {
-    switch(event.keyCode) {
-      case 87: // w
-        this._keys.forward = false;
-        break;
-      case 65: // a
-        this._keys.left = false;
-        break;
-      case 83: // s
-        this._keys.backward = false;
-        break;
-      case 68: // d
-        this._keys.right = false;
-        break;
-      case 32: // SPACE
-        this._keys.space = false;
-        break;
-      case 16: // SHIFT
-        this._keys.shift = false;
-        break;
+  _onKeyUp(e) {
+    switch (e.key.toLowerCase()) {
+      case 'w': this._keys.forward = false; break;
+      case 's': this._keys.backward = false; break;
+      case 'a': this._keys.left = false; break;
+      case 'd': this._keys.right = false; break;
+      case ' ': this._keys.space = false; break;
+      case 'shift': this._keys.shift = false; break;
     }
   }
-};
+}
+
+// ======= FSM + STATES (IGUAL QUE TÚ, NO LOS MUEVO) =======
+// … tus clases IdleState / WalkState / RunState / DanceState permanecen igual …
+
 
 
 class FiniteStateMachine {

@@ -10,13 +10,13 @@
 .title {
     font-family: 'Barbra', sans-serif;
     color: white;
-    font-size: 6em;
+    font-size: 4em;
     text-shadow: 1px 1px 3px black;
     position: absolute;
     top: 60px;
-    left: 80px;
+    left: 110px;
     width: 500px;
-    height: 300px;
+    height: 200px;
     margin: 0;
     justify-content: center;
     align-items: center;
@@ -41,7 +41,7 @@
 }
 
 .menu {
-    margin-top: 400px;
+    margin-top: 300px;
     margin-left: 220px;
     display: flex;
     flex-direction: column;
@@ -76,6 +76,25 @@
 }
 
 .btn:hover {
+    background: rgba(197, 111, 255, 0.736);
+}
+
+#btn-login, #btn-logout {
+    font-family: 'Secular One', sans-serif;
+    font-size: 20px;
+    font-style: normal;
+    text-align: center;
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #fffc4ee6;
+    color: rgb(0, 0, 0);
+    width: 240px;
+}
+
+#btn-login:hover, #btn-logout:hover {
     background: rgba(197, 111, 255, 0.736);
 }
 

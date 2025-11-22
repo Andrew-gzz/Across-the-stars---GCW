@@ -10,6 +10,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Secular+One&display=swap" rel="stylesheet">
 </head>
+<style>
+    .game-area {
+  position: relative;
+  width: 80vw;
+  height: 80vh;
+  overflow: hidden;
+}
+
+</style>
 
 <body style="background-image: url('Img/BG4.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
     <audio id="bg-music" src="sound/Radio_Portal.mp3" loop autoplay controls></audio> 
@@ -17,19 +26,22 @@
     <div class="game-area"></div>
     
     <!-- HUD / Menú inferior -->
-    <div class="hud">
+   <div class="hud">
+
+     <!-- NUEVOS CONTADORES -->
+
         <div class="hud-item">
-            <img src="img/Mineral1.webp" alt="Vida" class="hud-icon">
-            Vida: <span id="vida">3</span>
+            <img src="img/esmeralda.png" alt="Esmeraldas" class="hud-icon">
+            Vida: <span id="esmeraldas">10</span>
         </div>
 
         <div class="hud-item">
-            <img src="img/Mineral2.webp" alt="Potenciador" class="hud-icon">
-            <span>x2</span>
+            <img src="img/diamante.png" alt="Diamantes" class="hud-icon">
+            <span id="diamantes">0</span>
         </div>
 
         <div class="hud-item">
-            <img src="img/reloj.jpeg" alt="Reloj" class="hud-icon">
+            <img src="img/clock.png" alt="Reloj" class="hud-icon">
             Tiempo: <span id="tiempo">00:00</span>
         </div>
 
@@ -40,6 +52,7 @@
 
         <button class="pause-btn" onclick="togglePauseMenu()">⏸️ Pausa</button>
     </div>
+
 
     <!-- Mini menú de pausa -->
     <div id="pause-menu" class="pause-menu">
