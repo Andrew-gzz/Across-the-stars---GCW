@@ -143,51 +143,54 @@ export class ThirdPersonCamera {
 
   //Posición de la cámara arriba y mirando hacia abajo en 45°
   _CalculateIdealOffset() {
-    const idealOffset = new THREE.Vector3(-5, 30, -15);
+    const idealOffset = new THREE.Vector3(0, 30, -15);
     idealOffset.applyQuaternion(this._params.target.Rotation);
     idealOffset.add(this._params.target.Position);
     return idealOffset;
   }
 
   _CalculateIdealLookat() {
-    const idealLookat = new THREE.Vector3(-5, 2, 5);
+    const idealLookat = new THREE.Vector3(0, 2, 5);
     idealLookat.applyQuaternion(this._params.target.Rotation);
     idealLookat.add(this._params.target.Position);
     return idealLookat;
   }
 
- Update(timeElapsed) {
-    if (this._params.target && this._params.target._target) {
-      const bernice = this._params.target._target;
+  Update(timeElapsed) {
+  if (this._params.target && this._params.target._target) {
+    const bernice = this._params.target._target;
 
-      // Evita cualquier rotación acumulada
-      bernice.rotation.set(0, Math.PI, 0);
-      bernice.quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));
+    // El personaje NO rota
+    bernice.rotation.set(0, Math.PI, 0);
+    bernice.quaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));
 
-      // 🔹 Movimiento lateral sin rotar el cuerpo
-      if (this._params.target._input) {
-        const moveSpeed = 0.2;
-        if (this._params.target._input._keys.left) {
-          bernice.position.x -= moveSpeed; 
-        }
-        if (this._params.target._input._keys.right) {
-          bernice.position.x += moveSpeed; 
-        }
+    // Movimiento lateral sin afectar la rotación ni la cámara
+    if (this._params.target._input) {
+      const moveSpeed = 0.2;
+      if (this._params.target._input._keys.left) {
+        bernice.position.x -= moveSpeed;
+      }
+      if (this._params.target._input._keys.right) {
+        bernice.position.x += moveSpeed;
       }
     }
-
-    const idealOffset = this._CalculateIdealOffset();
-    const idealLookat = this._CalculateIdealLookat();
-
-    const t = 1.0 - Math.pow(0.001, timeElapsed);
-
-    this._currentPosition.lerp(idealOffset, t);
-    this._currentLookat.lerp(idealLookat, t);
-
-    this._camera.position.copy(this._currentPosition);
-    this._camera.lookAt(this._currentLookat);
-
-    
   }
+
+  const idealOffset = this._CalculateIdealOffset();
+  const idealLookat = this._CalculateIdealLookat();
+
+  const t = 1.0 - Math.pow(0.001, timeElapsed);
+
+  this._currentPosition.lerp(idealOffset, t);
+  this._currentLookat.lerp(idealLookat, t);
+
+  // ⛔ Cámara NO sigue a Bernice en X
+  this._currentPosition.x = 5;
+  this._currentLookat.x = 5;
+
+  this._camera.position.copy(this._currentPosition);
+  this._camera.lookAt(this._currentLookat);
+}
+
 }
 

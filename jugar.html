@@ -26,15 +26,18 @@
     <div class="game-area"></div>
     
     <!-- HUD / Menú inferior -->
-    <div class="hud">
+   <div class="hud">
+
+     <!-- NUEVOS CONTADORES -->
+
         <div class="hud-item">
-            <img src="img/esmeralda.png" alt="Vida" class="hud-icon">
-            Vida: <span id="vida">3</span>
+            <img src="img/esmeralda.png" alt="Esmeraldas" class="hud-icon">
+            Vida: <span id="esmeraldas">10</span>
         </div>
 
         <div class="hud-item">
-            <img src="img/diamante.png" alt="Potenciador" class="hud-icon">
-            <span>x2</span>
+            <img src="img/diamante.png" alt="Diamantes" class="hud-icon">
+            <span id="diamantes">0</span>
         </div>
 
         <div class="hud-item">
@@ -49,6 +52,7 @@
 
         <button class="pause-btn" onclick="togglePauseMenu()">⏸️ Pausa</button>
     </div>
+
 
     <!-- Mini menú de pausa -->
     <div id="pause-menu" class="pause-menu">

@@ -3,6 +3,17 @@ import { loadModel } from '../core/assets.js';
 
 export async function loadLevel3(scene) {
 
+  // --- HUD ---
+  let esmeraldas = 10;
+  let diamonds = 0;
+
+  const esmeraldasHUD = document.getElementById("esmeraldas");
+  const diamondsHUD = document.getElementById("diamantes");
+
+  esmeraldasHUD.textContent = esmeraldas;
+  diamondsHUD.textContent = diamonds;
+
+
   // --- LUCES ---
   const light = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(light);
@@ -15,7 +26,7 @@ export async function loadLevel3(scene) {
   const groundGeometry = new THREE.BoxGeometry(40, 0.5, 200);
   const groundMaterial = new THREE.MeshStandardMaterial({ color: '#0369a1' });
   const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  ground.position.set(0, 0, 0);
+  ground.position.set(0, -2, 0);
   ground.receiveShadow = true;
   scene.add(ground);
 
@@ -32,91 +43,145 @@ export async function loadLevel3(scene) {
 
   console.log("Bernice cargada:", bernice);
 
-  // --- CLASE ENEMIGO ---
-  class Box extends THREE.Mesh {
-    constructor({ width, height, depth, color = 'red', position, velocity, zAcceleration }) {
-      super(
-        new THREE.BoxGeometry(width, height, depth),
-        new THREE.MeshStandardMaterial({ color })
-      );
-      this.position.copy(position);
-      this.velocity = velocity;
-      this.gravity = -0.002;
-      this.zAcceleration = zAcceleration;
 
-      this.bbox = new THREE.Box3().setFromObject(this);
-    }
+  // -------------------------------------------------------
+  // 🔥 CARGA DE MODELOS PARA ENEMIGOS y OBJETOS
+  // -------------------------------------------------------
 
-    update(ground) {
-      if (this.zAcceleration) this.velocity.z += 0.0003;
-      this.position.add(this.velocity);
-      this.bbox.setFromObject(this);
+  // --- ASTEROIDE ---
+  const baseAsteroid = await loadModel('/models/asteroid2.glb');
+  baseAsteroid.scale.setScalar(1.5);
+  baseAsteroid.type = "asteroid";
 
-      this.applyGravity(ground);
-    }
+  // --- DIAMANTE ---
+  const baseDiamante = await loadModel('/models/diamante.glb');
+  baseDiamante.scale.setScalar(2);
+  baseDiamante.type = "diamond";
 
-    applyGravity(ground) {
-      this.velocity.y += this.gravity;
+  // --- ESMERALDA ---
+  const baseEsmeralda = await loadModel('/models/esmeralda.glb');
+  baseEsmeralda.scale.setScalar(2);
+  baseEsmeralda.type = "emerald";
 
-      if (this.position.y <= ground.position.y + 0.25) {
-        this.velocity.y = 0;
-        this.position.y = ground.position.y + 0.25;
+  // Modelos disponibles para aparecer
+  const models = [baseAsteroid, baseDiamante, baseEsmeralda];
+
+
+  // Función para clonar el modelo SIN compartir materiales
+  function cloneModel(model) {
+    const clone = model.clone(true);
+    clone.type = model.type;
+    clone.traverse(obj => {
+      if (obj.isMesh) {
+        obj.castShadow = true;
+        obj.receiveShadow = true;
       }
-    }
+    });
+    return clone;
   }
 
-  // --- ENEMIGOS ---
+  // --- LISTA DE OBJETOS EN EL MUNDO ---
   const enemies = [];
   let frames = 0;
   let spawnRate = 180;
 
-  // --- LOOP PRINCIPAL ---
+  function removeEnemy(enemy) {
+    enemy.removeFromParent();             
+    const index = enemies.indexOf(enemy); 
+    if (index !== -1) enemies.splice(index, 1);
+  }
+
+  // -------------------------------------------------------
+  // 🔥 LOOP PRINCIPAL
+  // -------------------------------------------------------
+
   function animate() {
     requestAnimationFrame(animate);
 
     // actualizar bounding box de Bernice
     berniceBBox.setFromObject(bernice);
 
-    // colisión
-    if (!bernice.isFrozen) {
-      enemies.forEach((enemy) => {
-        if (berniceBBox.intersectsBox(enemy.bbox)) {
-          bernice.isFrozen = true;
-          console.log("🔥 COLISIÓN DETECTADA: Bernice se congeló");
-        }
-      });
-    }
+    // --- COLISIONES ---
+    enemies.forEach(enemy => {
 
-    // spawn de enemigos
+      if (berniceBBox.intersectsBox(enemy.bbox)) {
+
+        // ASTEROIDE → quita vida
+       if (enemy.type === "asteroid") {
+          esmeraldas--;                      // baja la vida
+          esmeraldasHUD.textContent = esmeraldas;
+
+          console.log("💥 Colisión con ASTEROIDE. Esmeraldas (vida):", esmeraldas);
+
+          if (esmeraldas <= 0) {
+              bernice.isFrozen = true;
+              console.log("❌ Sin esmeraldas (vida). Juego terminado.");
+          }
+        }
+
+        if (enemy.type === "diamond") {
+            diamonds++;
+            diamondsHUD.textContent = diamonds;
+            console.log("💎 Recogiste un DIAMANTE. Total:", diamonds);
+        }
+
+        if (enemy.type === "emerald") {
+            // si quieres que las esmeraldas recogidas SUMEN vida:
+            esmeraldas++;
+            esmeraldasHUD.textContent = esmeraldas;
+
+            console.log("🟩 Recogiste una ESMERALDA extra. Nuevas esmeraldas:", esmeraldas);
+        }
+
+
+        // desaparecer después de colisionar
+        removeEnemy(enemy);
+      }
+
+    });
+
+    // --- SPAWN ENEMIGOS ---
     if (frames % spawnRate === 0) {
+
       if (spawnRate > 30) spawnRate -= 10;
 
-      const enemy = new Box({
-        width: 3.5,
-        height: 3.5,
-        depth: 3.5,
-        position: new THREE.Vector3(
-          (Math.random() - 0.5) * 16,
-          0,
-          -200
-        ),
-        velocity: new THREE.Vector3(0, 0, 0.03),
-        zAcceleration: true
-      });
+      const randomModel = models[Math.floor(Math.random() * models.length)];
+
+      const enemy = cloneModel(randomModel);
+
+      // 5 filas horizontales en X
+      const laneX = [-12, -6, 0, 6, 12];
+      const randomX = laneX[Math.floor(Math.random() * laneX.length)];
+
+      enemy.position.set(
+        randomX,
+        1.2,
+        -200
+      );
+
+      enemy.velocity = new THREE.Vector3(0, 0, 0.03);
+      enemy.zAcceleration = true;
+      enemy.bbox = new THREE.Box3().setFromObject(enemy);
 
       scene.add(enemy);
       enemies.push(enemy);
     }
 
-    // actualizar enemigos
-    enemies.forEach((enemy) => enemy.update(ground));
+    // --- MOVIMIENTO ---
+    enemies.forEach(enemy => {
+
+      if (enemy.zAcceleration) enemy.velocity.z += 0.0003;
+
+      enemy.position.add(enemy.velocity);
+
+      // actualizar bbox
+      enemy.bbox.setFromObject(enemy);
+    });
 
     frames++;
   }
 
   animate();
 
-  // 🔥🔥🔥 IMPORTANTE 🔥🔥🔥
-  // El nivel debe regresar la Bernice para que el main la use
   return { bernice };
 }
