@@ -43,6 +43,29 @@ export async function loadLevel3(scene) {
 
   console.log("Bernice cargada:", bernice);
 
+  // --- OVNI AL FINAL DE LA PISTA ---
+  const ovni = await loadModel('/models/ovni.glb');
+  ovni.scale.setScalar(0.5);
+  ovni.position.set(0, -2, -95); // Ajusta esta posición si quieres moverlo
+  scene.add(ovni);
+    
+  // Luz principal del OVNI (brillante)
+  const ovniLight = new THREE.PointLight(0x33ffff, 6, 60);
+  ovniLight.position.set(0, -1, 0);
+  ovniLight.castShadow = true;
+  ovni.add(ovniLight);
+
+  // Luz ambiente azul
+  const ovniGlow = new THREE.PointLight(0x99ccff, 2, 80);
+  ovniGlow.position.set(0, 0.5, 0);
+  ovniGlow.castShadow = false;
+  ovni.add(ovniGlow);
+
+  scene.add(ovni);
+
+  // Variables para animación de flotación
+  let ovniTime = 0;
+
 
   // -------------------------------------------------------
   // 🔥 CARGA DE MODELOS PARA ENEMIGOS y OBJETOS
@@ -91,12 +114,59 @@ export async function loadLevel3(scene) {
     if (index !== -1) enemies.splice(index, 1);
   }
 
+  //Pantalla de lose 
+  function mostrarGameOver() {
+    const gameArea = document.querySelector(".game-area");
+    if (!gameArea) return;
+
+    const overlay = document.createElement("div");
+    overlay.id = "gameover-screen";
+    overlay.style.position = "absolute";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.background = "rgba(0,0,0,0.8)";
+    overlay.style.backdropFilter = "blur(5px)";
+    overlay.style.display = "flex";
+    overlay.style.justifyContent = "center";
+    overlay.style.alignItems = "center";
+    overlay.style.zIndex = "100";
+
+    // Imagen lose.png
+    const img = document.createElement("img");
+    img.src = "Img/lose.png";
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";  // Hace que llene todo sin deformarse
+
+
+    overlay.appendChild(img);
+    gameArea.appendChild(overlay);
+  }
+
+
   // -------------------------------------------------------
   // 🔥 LOOP PRINCIPAL
   // -------------------------------------------------------
 
   function animate() {
     requestAnimationFrame(animate);
+    ovniTime += 0.02;
+
+    // Flotación arriba / abajo
+    ovni.position.y = -1 + Math.sin(ovniTime * 2) * 1.5;
+
+    // Movimiento horizontal izquierda–derecha entre -10 y +10
+    ovni.position.x = Math.sin(ovniTime * 0.7) * 10;
+
+    // Rotación suave
+    ovni.rotation.y += 0.01;
+
+    // Luz pulsante
+    ovniLight.intensity = 2 + Math.sin(ovniTime * 3) * 0.7;
+    ovniGlow.intensity = 1 + Math.cos(ovniTime * 3) * 0.4;
+
 
     // actualizar bounding box de Bernice
     berniceBBox.setFromObject(bernice);
@@ -116,6 +186,7 @@ export async function loadLevel3(scene) {
           if (esmeraldas <= 0) {
               bernice.isFrozen = true;
               console.log("❌ Sin esmeraldas (vida). Juego terminado.");
+              mostrarGameOver(); // 🔥 APARECE LA IMAGEN
           }
         }
 
