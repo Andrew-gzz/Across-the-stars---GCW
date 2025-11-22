@@ -32,12 +32,17 @@
 
         <div class="hud-item">
             <img src="img/esmeralda.png" alt="Esmeraldas" class="hud-icon">
-            Vida: <span id="esmeraldas">10</span>
+            Vida: <span id="esmeraldas"></span>
         </div>
 
         <div class="hud-item">
             <img src="img/diamante.png" alt="Diamantes" class="hud-icon">
-            <span id="diamantes">0</span>
+            <span id="diamantes"></span>
+        </div>
+
+         <div class="hud-item">
+            <img src="img/thunder.png" alt="thunder" class="hud-icon">
+            <span id="poteciador">0</span>
         </div>
 
         <div class="hud-item">
@@ -45,10 +50,7 @@
             Tiempo: <span id="tiempo">00:00</span>
         </div>
 
-        <div class="hud-item">
-            <img src="img/puntu.webp" alt="Puntuacion" class="hud-icon">
-            Puntuación: <span id="score">0</span>
-        </div>
+       
 
         <button class="pause-btn" onclick="togglePauseMenu()">⏸️ Pausa</button>
     </div>
@@ -57,7 +59,7 @@
     <!-- Mini menú de pausa -->
     <div id="pause-menu" class="pause-menu">
         <button onclick="resumeGame()">Reanudar</button>
-        <button onclick="restartGame()">Reiniciar</button>
+        <button id="btn-restart" onclick="restartGame()">Reiniciar</button>
         <button onclick="exitGame()">Salir</button>
         <button onclick="options()">Opciones</button>
     </div>
