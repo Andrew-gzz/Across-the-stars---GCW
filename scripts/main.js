@@ -19,6 +19,43 @@ import { createEnvironment, createHDRI } from './features/environment.js';
 // Systems
 import { BasicCharacterController } from './systems/controls.js';
 import { createPhysics } from './systems/physics.js';
+import { gameState } from './core/gameState.js';
+
+let tiempoInterval = null;
+
+export function iniciarTiempo() {
+    const tiempoHUD = document.getElementById("tiempo");
+    let segundos = 0;
+
+    if (tiempoInterval) clearInterval(tiempoInterval);
+
+    tiempoInterval = setInterval(() => {
+        if (gameState.paused) return;
+
+        segundos++;
+        
+        const min = String(Math.floor(segundos / 60)).padStart(2, "0");
+        const sec = String(segundos % 60).padStart(2, "0");
+
+        tiempoHUD.textContent = `${min}:${sec}`;
+        gameState.tiempo = segundos;
+
+    }, 1000);
+}
+
+export function detenerTiempo() {
+    if (tiempoInterval) {
+        clearInterval(tiempoInterval);
+        tiempoInterval = null;
+    }
+}
+
+window.restartGame = function () {
+  console.log("Reiniciando juego...");
+
+  gameState.reset();                 // 🔥 REINICIA GEMAS GLOBALES
+  window.location.reload();          // 🔥 Reinicia la escena completa
+};
 
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -74,6 +111,7 @@ class Main {
 
       case 3:
         result = await loadLevel3(this.scene, this.physics);
+        
         break;
 
       default:
