@@ -13,19 +13,20 @@ import { createCamera, ThirdPersonCamera } from './core/camera.js';
 import { Loop } from './core/loop.js';
 import { Resizer } from './core/resizer.js';
 
-// Assets & Features
-import { loadModel } from './core/assets.js';
+// Features
 import { createEnvironment, createHDRI } from './features/environment.js';
 
 // Systems
 import { BasicCharacterController } from './systems/controls.js';
-import { createPhysics, createBoxShapeFromMesh } from './systems/physics.js';
+import { createPhysics } from './systems/physics.js';
+
 
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
-  const level = parseInt(urlParams.get('level')) || 1; // Por defecto: nivel 1
+  const level = parseInt(urlParams.get('level')) || 1;
   new Main(level);
 });
+
 
 class Main {
   constructor(level = 1) {
@@ -34,10 +35,12 @@ class Main {
   }
 
   async _Initialize() {
+
+    // Contenedor
     const container = document.querySelector('.game-area');
     if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
-    this.container = container;
 
+    this.container = container;
     this.scene = createScene();
     this.camera = createCamera(container);
     this.renderer = createRenderer(container);
@@ -45,57 +48,68 @@ class Main {
 
     new Resizer(container, this.camera, this.renderer);
 
+    // HDRI + ambiente
     createHDRI(this.scene, '/models/Level2/HDRi.jpg');
     const { group: environment } = createEnvironment();
     this.scene.add(environment);
 
+    // Physics
     this.physics = createPhysics();
 
-    // Suelo genérico
-    /*const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(100, 100),
-      new THREE.MeshStandardMaterial({ color: 0xffffff })
-    );
-    ground.rotation.x = -Math.PI / 2;
-    this.scene.add(ground);
+    // -------------------------------------------
+    // 1) CARGAR NIVEL Y OBTENER BERNICE
+    // -------------------------------------------
+    console.log("Cargando nivel:", this.level);
 
-    const groundShape = new CANNON.Plane();
-    const groundBody = this.physics.add(ground, groundShape, 0);
-    groundBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);*/
+    let result = null;
 
-    // Carga de nivel según la selección del jugador
     switch (this.level) {
       case 1:
-        console.log('Cargando Nivel 1...');
-        await loadLevel1(this.scene, this.physics);
+        result = await loadLevel1(this.scene, this.physics);
         break;
+
       case 2:
-        console.log('Cargando Nivel 2...');
-        await loadLevel2(this.scene, this.physics);
+        result = await loadLevel2(this.scene, this.physics);
         break;
+
       case 3:
-        console.log('Cargando Nivel 3...');
-        await loadLevel3(this.scene, this.physics);
+        result = await loadLevel3(this.scene, this.physics);
         break;
+
       default:
-        console.warn('Nivel no reconocido. Cargando Nivel 1 por defecto.');
-        await loadLevel1(this.scene, this.physics);
+        result = await loadLevel1(this.scene, this.physics);
     }
 
-    const params = {
+    if (!result || !result.bernice) {
+      throw new Error("Error: el nivel no devolvió la Bernice.");
+    }
+
+    this.bernice = result.bernice;
+    console.log("Bernice cargada correctamente:", this.bernice);
+
+
+    // -------------------------------------------
+    // 2) CREAR CONTROLADOR Y CÁMARA
+    // -------------------------------------------
+    this._characterController = new BasicCharacterController({
       camera: this.camera,
       scene: this.scene,
-    };
-    this._characterController = new BasicCharacterController(params);
+      bernice: this.bernice,   // ← AQUÍ SE PASA LA BERNICE CORRECTA
+    });
 
     this._thirdPersonCamera = new ThirdPersonCamera({
       camera: this.camera,
       target: this._characterController,
     });
 
+
+    // -------------------------------------------
+    // 3) SISTEMAS DEL LOOP
+    // -------------------------------------------
     this.loop.addSystem((dt) => this.physics.update(dt));
     this.loop.addSystem((dt) => this._characterController.Update(dt));
     this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+
     this.loop.start();
   }
 }

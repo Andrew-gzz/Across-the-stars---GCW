@@ -126,7 +126,6 @@ export function createCamera(container) {
 window.addEventListener('resize', () => {
   camera.aspect = container.clientWidth / container.clientHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(container.clientWidth, container.clientHeight);
 });
 
   camera.position.set(0, 8, 15);
@@ -144,14 +143,14 @@ export class ThirdPersonCamera {
 
   //Posición de la cámara arriba y mirando hacia abajo en 45°
   _CalculateIdealOffset() {
-    const idealOffset = new THREE.Vector3(0, 30, -15);
+    const idealOffset = new THREE.Vector3(-5, 30, -15);
     idealOffset.applyQuaternion(this._params.target.Rotation);
     idealOffset.add(this._params.target.Position);
     return idealOffset;
   }
 
   _CalculateIdealLookat() {
-    const idealLookat = new THREE.Vector3(0, 2, 5);
+    const idealLookat = new THREE.Vector3(-5, 2, 5);
     idealLookat.applyQuaternion(this._params.target.Rotation);
     idealLookat.add(this._params.target.Position);
     return idealLookat;
