@@ -53,14 +53,27 @@ export async function loadLevel3(scene, physics) {
   const dirLight = new THREE.DirectionalLight(0xffffff, 1);
   dirLight.position.set(50, 100, 100);
   scene.add(dirLight);
+// --- PISO ---
+    const textureLoader = new THREE.TextureLoader();
+    const marsTexture = textureLoader.load('/Img/mars.jpg');
 
-  // --- PISO ---
-  const groundGeometry = new THREE.BoxGeometry(40, 0.5, 200);
-  const groundMaterial = new THREE.MeshStandardMaterial({ color: '#0369a1' });
-  const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  ground.position.set(0, -2, 0);
-  ground.receiveShadow = true;
-  scene.add(ground);
+    // Para que la textura se repita a lo largo de la pista
+    marsTexture.wrapS = THREE.RepeatWrapping;
+    marsTexture.wrapT = THREE.RepeatWrapping;
+
+    // Ajusta cuántas veces se repetirá la textura
+    marsTexture.repeat.set(1, 8); // Puedes cambiar los valores
+
+    const ground = new THREE.Mesh(
+    new THREE.BoxGeometry(40, 0.5, 360),
+    new THREE.MeshStandardMaterial({
+        map: marsTexture
+    })
+    );
+
+    ground.position.set(0, -2, 0);
+    ground.receiveShadow = true;
+    scene.add(ground);
 
   // --- CARGAR BERNICE ---
   const bernice = await loadModel('/models/Bernice.fbx');
