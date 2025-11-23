@@ -30,7 +30,7 @@ export async function loadLevel3(scene, physics) {
   dirLight.position.set(50, 100, 100);
   scene.add(dirLight);
 
-  // ---- PISO ----
+  // ---- PISO INFINITO ----
   const textureLoader = new THREE.TextureLoader();
   const marsTexture = textureLoader.load('/Img/pista4.png');
 
@@ -38,16 +38,30 @@ export async function loadLevel3(scene, physics) {
   marsTexture.wrapT = THREE.RepeatWrapping;
   marsTexture.repeat.set(1, 8);
 
-  const ground = new THREE.Mesh(
-    new THREE.BoxGeometry(40, 0.5, 360),
+  const groundLength = 220;
+
+  const ground1 = new THREE.Mesh(
+    new THREE.BoxGeometry(40, 0.5, groundLength),
     new THREE.MeshStandardMaterial({ map: marsTexture })
   );
+  ground1.position.set(0, -2, 0);
+  ground1.receiveShadow = true;
+  scene.add(ground1);
 
-  ground.position.set(0, -2, 0);
-  ground.receiveShadow = true;
-  scene.add(ground);
+  const ground2 = new THREE.Mesh(
+    new THREE.BoxGeometry(40, 0.5, groundLength),
+    new THREE.MeshStandardMaterial({ map: marsTexture })
+  );
+  ground2.position.set(0, -2, -groundLength);
+  ground2.receiveShadow = true;
+  scene.add(ground2);
 
-  // ---- CARGAR BERNICE ----
+  let groundSpeed = 0.2;
+
+  // 🔥 MULTIPLICADOR GLOBAL PARA ACELERAR TODO
+  let globalSpeedMultiplier = 1;
+
+  // ---- BERNICE ----
   const bernice = await loadModel('/models/Bernice.fbx');
   bernice.name = "Bernice";
   bernice.position.set(0, 0, 20);
@@ -153,9 +167,8 @@ export async function loadLevel3(scene, physics) {
 
   const thunderHUD = document.getElementById("poteciador");
 
-  // ---- TIMER (difícil) ----
+  // ---- TIMER DIFÍCIL ----
   if (dificultad === "dificil") {
-
     gameState.timeLeft = 60;
 
     function formatTime(s) {
@@ -178,7 +191,6 @@ export async function loadLevel3(scene, physics) {
       }
 
     }, 1000);
-
   } else {
     tiempoHUD.textContent = "--:--";
     gameState.timeInterval = null;
@@ -232,9 +244,9 @@ export async function loadLevel3(scene, physics) {
   // 🎮 MOVIMIENTO Y LÍMITES DE BERNICE
   // -------------------------------------------------------
 
-  const LIMIT_X = 18;   // límite horizontal
-  const MIN_Z = -10;      // no deja que se acerque demasiado a la cámara
-  const MAX_Z = 50;     // límite máximo visible
+  const LIMIT_X = 18;
+  const MIN_Z = -10;
+  const MAX_Z = 50;
 
   // -------------------------------------------------------
   // 🔥 LOOP PRINCIPAL
@@ -253,27 +265,27 @@ export async function loadLevel3(scene, physics) {
     ovniLight.intensity = 2 + Math.sin(ovniTime * 3) * 0.7;
     ovniGlow.intensity = 1 + Math.cos(ovniTime * 3) * 0.4;
 
-    // --- MOVER PISO (GROUND) ---
-    ground.position.z += 0.5; // velocidad del piso
+    // --- PISO INFINITO ---
+    ground1.position.z += groundSpeed * globalSpeedMultiplier;
+    ground2.position.z += groundSpeed * globalSpeedMultiplier;
 
-    // Loop infinito del piso
-    if (ground.position.z > 200) {
-      ground.position.z = -200;
+    if (ground1.position.z > groundLength) {
+      ground1.position.z = ground2.position.z - groundLength;
     }
 
+    if (ground2.position.z > groundLength) {
+      ground2.position.z = ground1.position.z - groundLength;
+    }
 
-
-   // --- MOVIMIENTO DE BERNICE ---
+    // --- MOVIMIENTO DE BERNICE ---
     if (!bernice.isFrozen && input && input._keys) {
       let speed = 0.2 * (bernice.speedMultiplier || 1);
 
       if (input._keys.left) bernice.position.x -= speed;
       if (input._keys.right) bernice.position.x += speed;
-
       if (input._keys.up) bernice.position.z -= speed;
       if (input._keys.down) bernice.position.z += speed;
     }
-
 
     // ---- LIMITES ----
     if (bernice.position.x < -LIMIT_X) bernice.position.x = -LIMIT_X;
@@ -300,24 +312,30 @@ export async function loadLevel3(scene, physics) {
       if (berniceBBox.intersectsBox(enemy.bbox)) {
 
         if (enemy.type === "thunder") {
-          gameState.thunderActive = true;
+
+          // 🔥 ACELERA TODO DURANTE EL POWER-UP
+          globalSpeedMultiplier = 2.5;
           bernice.speedMultiplier = 2.5;
 
+          gameState.thunderActive = true;
           gameState.thunderTime = 3;
           thunderHUD.textContent = gameState.thunderTime + "s";
 
           if (gameState.thunderInterval) clearInterval(gameState.thunderInterval);
           if (gameState.thunderTimeout) clearTimeout(gameState.thunderTimeout);
 
+          // cada segundo
           gameState.thunderInterval = setInterval(() => {
             gameState.thunderTime--;
             if (gameState.thunderTime >= 0)
               thunderHUD.textContent = gameState.thunderTime + "s";
           }, 1000);
 
+          // cuando se termina el power-up
           gameState.thunderTimeout = setTimeout(() => {
             gameState.thunderActive = false;
             bernice.speedMultiplier = 1;
+            globalSpeedMultiplier = 1;  // 🔥 VOLVER TODO A NORMAL
             thunderHUD.textContent = "0";
           }, 3000);
         }
@@ -374,12 +392,13 @@ export async function loadLevel3(scene, physics) {
 
       if (enemy.type !== "asteroid") {
         enemy.position.y += Math.sin(Date.now() * 0.003 + enemy.position.x) * 0.005;
-        enemy.rotation.y += 0.02;
+        enemy.rotation.y += 0.02 * globalSpeedMultiplier;
       }
 
-      enemy.position.add(enemy.velocity);
+      // velocidad general aplicada aquí 🔥
+      enemy.position.addScaledVector(enemy.velocity, globalSpeedMultiplier);
 
-      if (enemy.zAcceleration) enemy.velocity.z += 0.0003;
+      if (enemy.zAcceleration) enemy.velocity.z += 0.0003 * globalSpeedMultiplier;
 
       enemy.bbox.setFromObject(enemy);
     });
