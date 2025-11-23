@@ -79,15 +79,36 @@ window.addEventListener('DOMContentLoaded', () => {
 
 	// Detectar si es nivel multijugador
 	let level;
+	let modo = null;
+	let dificultad = null;
+
 	if (levelParam === 'M') {
+		// Modo Multijugador
 		level = 'M';
 		console.log("🎮 Modo MULTIJUGADOR detectado");
 	} else {
+		// Obtener dificultad de localStorage
 		level = parseInt(levelParam);
-		console.log("🎮 Modo INDIVIDUAL - Nivel:", level);
+		modo = localStorage.getItem("modo");
+		dificultad = localStorage.getItem("dificultad");
+
+		console.log("Modo INDIVIDUAL - Nivel:", level);
+		console.log("Modo:", modo, "| Dificultad:", dificultad);
+
+		// Mostrar/Ocultar HUD de tiempo según dificultad
+		const tiempoHUD = document.getElementById("tiempo")?.parentElement;
+		if (tiempoHUD) {
+			if (dificultad === "facil") {
+				tiempoHUD.style.display = "none";
+				console.log("⏰ Temporizador oculto (modo fácil)");
+			} else {
+				tiempoHUD.style.display = "inline-flex";
+				console.log("⏰ Temporizador visible (modo difícil)");
+			}
+		}
 	}
 
-	new Main(level);
+	new Main({ level, modo, dificultad });
 });
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -183,8 +204,10 @@ class Main {
     }
 }
 class Main {
-	constructor(level = 1) {
+	constructor({ level, modo = null, dificultad = null }) {
 		this.level = level;
+		this.modo = modo;
+		this.dificultad = dificultad;
 		this._Initialize();
 	}
 
@@ -210,42 +233,38 @@ class Main {
 		// Physics
 		this.physics = createPhysics();
 
-		console.log("🔄 Cargando nivel:", this.level);
+		console.log("Cargando nivel:", this.level);
 
 		let result = null;
 
-		// 🎮 SWITCH MEJORADO CON SOPORTE MULTIJUGADOR
-		if (this.level === 'M') {
-			// Nivel Multijugador
-			console.log("🌐 Cargando nivel MULTIJUGADOR...");
+		if (this.level === 'M') { // Nivel Multijugador		
+			console.log("Cargando nivel MULTIJUGADOR...");
 			result = await loadLevelM(this.scene, this.physics);
-		} else {
-			// Niveles Individuales
+		} else { // Niveles Individuales con Dificultad		
+			console.log(`Cargando Level ${this.level} - Dificultad: ${this.dificultad || 'normal'}`);
+
 			switch (this.level) {
 				case 1:
-					console.log("📍 Cargando Level 1...");
-					result = await loadLevel1(this.scene, this.physics);
+					result = await loadLevel1(this.scene, this.physics, this.dificultad);
 					break;
 
 				case 2:
-					console.log("📍 Cargando Level 2...");
-					result = await loadLevel2(this.scene, this.physics);
+					result = await loadLevel2(this.scene, this.physics, this.dificultad);
 					break;
 
 				case 3:
-					console.log("📍 Cargando Level 3...");
-					result = await loadLevel3(this.scene, this.physics);
+					result = await loadLevel3(this.scene, this.physics, this.dificultad);
 					break;
 
 				default:
 					console.warn("⚠️ Nivel no encontrado, cargando Level 1 por defecto");
-					result = await loadLevel1(this.scene, this.physics);
+					result = await loadLevel1(this.scene, this.physics, this.dificultad);
 			}
 		}
 
 		// Verificar que Bernice existe
 		if (!result || !result.bernice) {
-			throw new Error("❌ Error: el nivel no devolvió la Bernice.");
+			throw new Error("Error: el nivel no devolvió la Bernice.");
 		}
 
 		this.bernice = result.bernice;
@@ -254,14 +273,15 @@ class Main {
 		this._characterController = new BasicCharacterController({
 			camera: this.camera,
 			scene: this.scene,
-			bernice: this.bernice,   // ← AQUÍ SE PASA LA BERNICE CORRECTA
+			bernice: this.bernice, 
 		});
 
+		/*
 		this._thirdPersonCamera = new ThirdPersonCamera({
 			camera: this.camera,
 			target: this._characterController,
 		});
-
+		*/
 
 		// LOOP
 		this.loop.addSystem((dt) => this.physics.update(dt));
@@ -269,6 +289,6 @@ class Main {
 		this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
 
 		this.loop.start();
-		console.log("🚀 Loop de juego iniciado");
+		console.log("Loop de juego iniciado");
 	}
 }
