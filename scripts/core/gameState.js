@@ -15,3 +15,7 @@ export const gameState = {
 		this.thunderActive = false;
 	}
 };
+
+// HACERLO GLOBAL
+window.gameState = gameState;
+

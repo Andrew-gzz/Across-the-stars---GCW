@@ -115,7 +115,7 @@ export class ThirdPersonCamera {
 	}
 }
 */
-
+/*
 import * as THREE from 'three';
 
 export function createCamera(container) {
@@ -195,4 +195,29 @@ export class ThirdPersonCamera {
 	}
 
 }
+*/
+
+// camera.js FINAL
+import * as THREE from "three";
+
+export function createCamera(container) {
+  const camera = new THREE.PerspectiveCamera(
+    50,
+    container.clientWidth / container.clientHeight,
+    0.1,
+    2000
+  );
+
+  // Cámara fija
+  camera.position.set(7, 35, 40);
+  camera.lookAt(7, 0, 10);
+
+  window.addEventListener("resize", () => {
+    camera.aspect = container.clientWidth / container.clientHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  return camera;
+}
+
 

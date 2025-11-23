@@ -1,12 +1,20 @@
 // scripts/menu.js
 function togglePauseMenu() {
     const menu = document.getElementById("pause-menu");
-    // Alterna mostrar/ocultar
-    menu.style.display = menu.style.display === "block" ? "none" : "block";
+
+    // Cambia el estado del juego
+    gameState.paused = !gameState.paused;
+
+    // Muestra u oculta el menú
+    menu.style.display = gameState.paused ? "block" : "none";
 }
 
 function resumeGame() {
+    gameState.paused = false;
     document.getElementById("pause-menu").style.display = "none";
+
+    // 🔥 Volver a activar animación
+    window.startGameLoop();
 }
 
 function restartGame() {
