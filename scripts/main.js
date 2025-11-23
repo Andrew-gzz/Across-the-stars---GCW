@@ -6,6 +6,7 @@ import * as CANNON from 'cannon-es';
 import { loadLevel1 } from './levels/level1.js';
 import { loadLevel2 } from './levels/level2.js';
 import { loadLevel3 } from './levels/level3.js';
+import { loadLevelM } from './levels/levelM.js';
 
 // Core
 import { createRenderer } from './core/renderer.js';
@@ -61,7 +62,20 @@ window.restartGame = function () {
 
 window.addEventListener('DOMContentLoaded', () => {
 	const urlParams = new URLSearchParams(window.location.search);
-	const level = parseInt(urlParams.get('level')) || 1;
+	const levelParam = urlParams.get('level') || '1';
+
+	console.log("📋 Parámetro level recibido:", levelParam);
+
+	// Detectar si es nivel multijugador
+	let level;
+	if (levelParam === 'M') {
+		level = 'M';
+		console.log("🎮 Modo MULTIJUGADOR detectado");
+	} else {
+		level = parseInt(levelParam);
+		console.log("🎮 Modo INDIVIDUAL - Nivel:", level);
+	}
+
 	new Main(level);
 });
 
@@ -94,42 +108,47 @@ class Main {
 		// Physics
 		this.physics = createPhysics();
 
-		// -------------------------------------------
-		// 1) CARGAR NIVEL Y OBTENER BERNICE
-		// -------------------------------------------
-		console.log("Cargando nivel:", this.level);
+		console.log("🔄 Cargando nivel:", this.level);
 
 		let result = null;
 
-		switch (this.level) {
-			case 1:
-				result = await loadLevel1(this.scene, this.physics);
-				break;
+		// 🎮 SWITCH MEJORADO CON SOPORTE MULTIJUGADOR
+		if (this.level === 'M') {
+			// Nivel Multijugador
+			console.log("🌐 Cargando nivel MULTIJUGADOR...");
+			result = await loadLevelM(this.scene, this.physics);
+		} else {
+			// Niveles Individuales
+			switch (this.level) {
+				case 1:
+					console.log("📍 Cargando Level 1...");
+					result = await loadLevel1(this.scene, this.physics);
+					break;
 
-			case 2:
-				result = await loadLevel2(this.scene, this.physics);
-				break;
+				case 2:
+					console.log("📍 Cargando Level 2...");
+					result = await loadLevel2(this.scene, this.physics);
+					break;
 
-			case 3:
-				result = await loadLevel3(this.scene, this.physics);
+				case 3:
+					console.log("📍 Cargando Level 3...");
+					result = await loadLevel3(this.scene, this.physics);
+					break;
 
-				break;
-
-			default:
-				result = await loadLevel1(this.scene, this.physics);
+				default:
+					console.warn("⚠️ Nivel no encontrado, cargando Level 1 por defecto");
+					result = await loadLevel1(this.scene, this.physics);
+			}
 		}
 
+		// Verificar que Bernice existe
 		if (!result || !result.bernice) {
-			throw new Error("Error: el nivel no devolvió la Bernice.");
+			throw new Error("❌ Error: el nivel no devolvió la Bernice.");
 		}
 
 		this.bernice = result.bernice;
-		console.log("Bernice cargada correctamente:", this.bernice);
+		console.log("✅ Bernice cargada correctamente:", this.bernice);
 
-
-		// -------------------------------------------
-		// 2) CREAR CONTROLADOR Y CÁMARA
-		// -------------------------------------------
 		this._characterController = new BasicCharacterController({
 			camera: this.camera,
 			scene: this.scene,
@@ -142,13 +161,12 @@ class Main {
 		});
 
 
-		// -------------------------------------------
-		// 3) SISTEMAS DEL LOOP
-		// -------------------------------------------
+		// LOOP
 		this.loop.addSystem((dt) => this.physics.update(dt));
 		this.loop.addSystem((dt) => this._characterController.Update(dt));
 		this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
 
 		this.loop.start();
+		console.log("🚀 Loop de juego iniciado");
 	}
 }
