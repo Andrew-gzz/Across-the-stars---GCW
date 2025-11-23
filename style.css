@@ -400,7 +400,7 @@ Zona de juego
     border-radius: 20px;
     text-align: center;
     backdrop-filter: blur(10px);
-    min-width: 450px;
+    min-width: 500px;
     border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -409,6 +409,37 @@ Zona de juego
     font-size: 32px;
     margin-bottom: 20px;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.code-input-container {
+    margin: 30px 0;
+}
+
+.code-input {
+    width: 100%;
+    max-width: 300px;
+    padding: 15px 20px;
+    font-size: 24px;
+    text-align: center;
+    border: 2px solid rgba(59, 130, 246, 0.5);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    transition: all 0.3s;
+}
+
+.code-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.code-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 3px;
 }
 
 .player-list {
@@ -444,6 +475,7 @@ Zona de juego
     height: 50px;
     border-radius: 50%;
     border: 2px solid #fff;
+    object-fit: cover;
 }
 
 .player-name {
@@ -507,6 +539,7 @@ Zona de juego
     gap: 10px;
     justify-content: center;
     margin-top: 20px;
+    flex-wrap: wrap;
 }
 
 .btn-lobby {
@@ -520,7 +553,7 @@ Zona de juego
     text-transform: uppercase;
 }
 
-.btn-lobby:hover {
+.btn-lobby:hover:not(:disabled) {
     transform: scale(1.05);
     box-shadow: 0 5px 20px rgba(255, 255, 255, 0.3);
 }
@@ -528,7 +561,6 @@ Zona de juego
 .btn-lobby:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
 }
 
 .btn-create {
@@ -551,16 +583,16 @@ Zona de juego
     color: white;
 }
 
-.room-code {
+.room-code-display {
     background: rgba(59, 130, 246, 0.2);
     padding: 12px 25px;
     border-radius: 10px;
     color: #60a5fa;
-    font-size: 22px;
+    font-size: 28px;
     font-family: 'Courier New', monospace;
     margin: 20px 0;
     border: 2px solid rgba(96, 165, 250, 0.3);
-    letter-spacing: 3px;
+    letter-spacing: 5px;
 }
 
 .hidden {
@@ -574,7 +606,12 @@ Zona de juego
     font-style: italic;
 }
 
-/* 👤 Usuario logueado */
+.hint-text {
+    color: #888;
+    font-size: 14px;
+    margin-top: 10px;
+}
+
 #user-profile {
     position: absolute;
     top: 20px;
@@ -593,6 +630,7 @@ Zona de juego
     height: 40px;
     border-radius: 50%;
     border: 2px solid #fff;
+    object-fit: cover;
 }
 
 #user-name {

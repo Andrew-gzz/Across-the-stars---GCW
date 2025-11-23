@@ -6,21 +6,34 @@ export class RoomManager {
         this.currentRoomId = null;
         this.currentUserId = null;
         this.isHost = false;
-        this.onRoomUpdate = null; // Callback para actualizar UI
-        this.onGameStart = null; // Callback para iniciar juego
+        this.onRoomUpdate = null;
+        this.onGameStart = null;
     }
 
-    // 🔹 Crear una nueva sala
-    async createRoom(level = 3) {
+    // 🔹 Crear una sala con código personalizado
+    async createRoom(customCode = null, level = 3) {
         if (!auth.currentUser) {
             throw new Error("Debes iniciar sesión primero");
         }
 
         this.currentUserId = auth.currentUser.uid;
-        this.currentRoomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Si hay código personalizado, usarlo; si no, generar uno aleatorio
+        const roomCode = customCode 
+            ? customCode.toUpperCase().trim()
+            : this._generateRoomCode();
+        
+        this.currentRoomId = `room_${roomCode}`;
         this.isHost = true;
 
+        // Verificar si la sala ya existe
+        const existingRoom = await get(ref(db, `rooms/${this.currentRoomId}`));
+        if (existingRoom.exists()) {
+            throw new Error(`Ya existe una sala con el código "${roomCode}". Usa otro código.`);
+        }
+
         const roomData = {
+            code: roomCode, // Guardar código legible
             host: this.currentUserId,
             guest: null,
             status: "waiting",
@@ -29,7 +42,7 @@ export class RoomManager {
             players: {
                 [this.currentUserId]: {
                     name: auth.currentUser.displayName || "Player 1",
-                    photoURL: auth.currentUser.photoURL || "",
+                    photoURL: auth.currentUser.photoURL || "/Img/pfp.jpg",
                     ready: false,
                     x: 0,
                     z: 20,
@@ -41,70 +54,91 @@ export class RoomManager {
 
         await set(ref(db, `rooms/${this.currentRoomId}`), roomData);
         
-        // Configurar limpieza automática si el host se desconecta
+        // Configurar limpieza automática
         const roomRef = ref(db, `rooms/${this.currentRoomId}`);
         onDisconnect(roomRef).remove();
 
-        console.log("✅ Sala creada:", this.currentRoomId);
+        console.log("✅ Sala creada con código:", roomCode);
         this._listenToRoom();
         
-        return this.currentRoomId;
+        return roomCode;
     }
 
-    // 🔹 Buscar una sala disponible y unirse
-    async joinAvailableRoom() {
+    // 🔹 Unirse a una sala usando código
+    async joinRoomByCode(roomCode) {
         if (!auth.currentUser) {
             throw new Error("Debes iniciar sesión primero");
         }
 
         this.currentUserId = auth.currentUser.uid;
+        
+        const cleanCode = roomCode.toUpperCase().trim();
+        this.currentRoomId = `room_${cleanCode}`;
 
-        // Buscar salas disponibles
-        const roomsRef = ref(db, 'rooms');
-        const snapshot = await get(roomsRef);
+        try {
+            // Intentar obtener la sala
+            const snapshot = await get(ref(db, `rooms/${this.currentRoomId}`));
 
-        if (!snapshot.exists()) {
-            throw new Error("No hay salas disponibles. Crea una nueva.");
-        }
-
-        const rooms = snapshot.val();
-        let availableRoom = null;
-
-        // Buscar sala con guest = null
-        for (const [roomId, roomData] of Object.entries(rooms)) {
-            if (roomData.guest === null && roomData.status === "waiting") {
-                availableRoom = { id: roomId, data: roomData };
-                break;
+            if (!snapshot.exists()) {
+                throw new Error(`No existe una sala con el código "${cleanCode}"`);
             }
+
+            const roomData = snapshot.val();
+
+            // Verificar que no seas el host tratando de unirte a tu propia sala
+            if (roomData.host === this.currentUserId) {
+                throw new Error("No puedes unirte a tu propia sala");
+            }
+
+            // Verificar que la sala está disponible
+            if (roomData.guest !== null && roomData.guest !== undefined) {
+                throw new Error("Esta sala ya está llena (2/2 jugadores)");
+            }
+
+            if (roomData.status !== "waiting") {
+                throw new Error("Esta sala ya comenzó o finalizó");
+            }
+
+            this.isHost = false;
+
+            // Unirse a la sala
+            await update(ref(db, `rooms/${this.currentRoomId}`), {
+                guest: this.currentUserId
+            });
+
+            await set(ref(db, `rooms/${this.currentRoomId}/players/${this.currentUserId}`), {
+                name: auth.currentUser.displayName || "Player 2",
+                photoURL: auth.currentUser.photoURL || "/Img/pfp.jpg",
+                ready: false,
+                x: 0,
+                z: 20,
+                animation: "idle",
+                timestamp: Date.now()
+            });
+
+            // Configurar limpieza si se desconecta
+            const playerRef = ref(db, `rooms/${this.currentRoomId}/players/${this.currentUserId}`);
+            onDisconnect(playerRef).remove();
+
+            console.log("✅ Unido a sala:", cleanCode);
+            this._listenToRoom();
+
+            return cleanCode;
+
+        } catch (error) {
+            console.error("❌ Error al unirse:", error);
+            throw error;
         }
+    }
 
-        if (!availableRoom) {
-            throw new Error("No hay salas disponibles. Crea una nueva.");
+    // 🔹 Generar código aleatorio de 6 caracteres
+    _generateRoomCode() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 6; i++) {
+            code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-
-        // Unirse a la sala
-        this.currentRoomId = availableRoom.id;
-        this.isHost = false;
-
-        await set(ref(db, `rooms/${this.currentRoomId}/guest`), this.currentUserId);
-        await set(ref(db, `rooms/${this.currentRoomId}/players/${this.currentUserId}`), {
-            name: auth.currentUser.displayName || "Player 2",
-            photoURL: auth.currentUser.photoURL || "",
-            ready: false,
-            x: 0,
-            z: 20,
-            animation: "idle",
-            timestamp: Date.now()
-        });
-
-        // Si el guest se desconecta, solo removerlo
-        const playerRef = ref(db, `rooms/${this.currentRoomId}/players/${this.currentUserId}`);
-        onDisconnect(playerRef).remove();
-
-        console.log("✅ Unido a sala:", this.currentRoomId);
-        this._listenToRoom();
-
-        return this.currentRoomId;
+        return code;
     }
 
     // 🔹 Marcar jugador como "listo"
@@ -117,12 +151,10 @@ export class RoomManager {
         );
 
         console.log(`✅ ${ready ? 'Listo' : 'No listo'}`);
-
-        // Verificar si ambos están listos
         await this._checkBothReady();
     }
 
-    // 🔹 Verificar si ambos jugadores están listos
+    // 🔹 Verificar si ambos están listos
     async _checkBothReady() {
         const snapshot = await get(ref(db, `rooms/${this.currentRoomId}/players`));
         const players = snapshot.val();
@@ -131,14 +163,11 @@ export class RoomManager {
 
         const playerList = Object.values(players);
         
-        // Si hay 2 jugadores y ambos están ready
         if (playerList.length === 2 && playerList.every(p => p.ready)) {
-            console.log("🎮 ¡Ambos jugadores listos! Iniciando en 3 segundos...");
+            console.log("🎮 ¡Ambos jugadores listos!");
             
-            // Cambiar estado a "ready" (preludio al inicio)
             await update(ref(db, `rooms/${this.currentRoomId}`), { status: "ready" });
             
-            // Esperar 3 segundos y luego iniciar
             setTimeout(async () => {
                 await update(ref(db, `rooms/${this.currentRoomId}`), { status: "playing" });
             }, 3000);
@@ -159,12 +188,10 @@ export class RoomManager {
 
             console.log("📡 Actualización de sala:", roomData.status);
 
-            // Callback para actualizar UI
             if (this.onRoomUpdate) {
                 this.onRoomUpdate(roomData);
             }
 
-            // Si el estado cambia a "playing", iniciar juego
             if (roomData.status === "playing" && this.onGameStart) {
                 console.log("🚀 ¡Iniciando juego!");
                 this.onGameStart();
@@ -177,7 +204,7 @@ export class RoomManager {
         if (!this.currentRoomId || !this.currentUserId) return;
 
         await update(ref(db, `rooms/${this.currentRoomId}/players/${this.currentUserId}`), {
-            x: Math.round(x * 100) / 100, // Redondear para reducir tráfico
+            x: Math.round(x * 100) / 100,
             z: Math.round(z * 100) / 100,
             animation: animation,
             timestamp: Date.now()
@@ -194,7 +221,6 @@ export class RoomManager {
             const players = snapshot.val();
             if (!players) return;
 
-            // Filtrar solo el otro jugador
             const otherPlayers = Object.entries(players)
                 .filter(([id, _]) => id !== this.currentUserId)
                 .map(([id, data]) => ({ id, ...data }));
@@ -207,12 +233,10 @@ export class RoomManager {
     async leaveRoom() {
         if (!this.currentRoomId || !this.currentUserId) return;
 
-        // Si eres el host, eliminar toda la sala
         if (this.isHost) {
             await remove(ref(db, `rooms/${this.currentRoomId}`));
             console.log("🏠 Sala eliminada (eras el host)");
         } else {
-            // Si eres guest, solo eliminarte
             await update(ref(db, `rooms/${this.currentRoomId}`), { guest: null });
             await remove(ref(db, `rooms/${this.currentRoomId}/players/${this.currentUserId}`));
             console.log("👋 Saliste de la sala (eras guest)");
