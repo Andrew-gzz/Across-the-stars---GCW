@@ -1,3 +1,4 @@
+// scripts/menu.js
 function togglePauseMenu() {
     const menu = document.getElementById("pause-menu");
 

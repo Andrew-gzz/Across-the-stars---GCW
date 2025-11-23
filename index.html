@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,81 +12,83 @@
     <link href="https://fonts.googleapis.com/css2?family=Secular+One&display=swap" rel="stylesheet">
 </head>
 
-<body style="background-image: url('Img/BG1.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
+<body
+    style="background-image: url('Img/BG1.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
+
+    <!-- Usuario logueado (arriba a la derecha) -->
+    <div id="user-profile"
+        style="position: absolute; top: 20px; right: 20px; display: none; align-items: center; gap: 10px; background: rgba(0,0,0,0.7); padding: 10px 20px; border-radius: 50px; backdrop-filter: blur(10px);">
+        <img id="user-photo" src="" alt="Avatar"
+            style="width: 40px; height: 40px; border-radius: 50%; border: 2px solid #fff;">
+        <span id="user-name" style="color: #fff; font-size: 16px;">Usuario</span>
+    </div>
+
+    <h1 class="title">Across the Stars</h1>
+
+    <div class="menu">
+        <a href="modoJ.html" class="btn">Jugar</a>
+        <a href="opciones.html" class="btn">Opciones</a>
+        <a href="puntuaciones.html" class="btn">Puntuaciones</a>
+        <a href="facebook.html" class="btnFacebook">Facebook</a>
+        <button id="btn-google" class="btn">Google</button>
+    </div>
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } 
-        from "https://www.gstatic.com/firebasejs/12.5.0/firebase-auth.js";
+        import { auth, signInWithPopup, signOut, onAuthStateChanged, provider } from './scripts/config/firebase.js';
 
-        // Configuración de tu proyecto Firebase
-        const firebaseConfig = {
-        apiKey: "AIzaSyBxZqkPvJMEb8g7TAU8w7YzOEpKuRkAmI8",
-        authDomain: "across-the-stars.firebaseapp.com",
-        projectId: "across-the-stars",
-        storageBucket: "across-the-stars.firebasestorage.app",
-        messagingSenderId: "753694056317",
-        appId: "1:753694056317:web:abd659d6022ff42b18b614"
-        };
+        const btnGoogle = document.getElementById("btn-google");
+        const userProfile = document.getElementById("user-profile");
+        const userPhoto = document.getElementById("user-photo");
+        const userName = document.getElementById("user-name");
 
-        // Inicializar Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-
-        // Botones
-        const btnLogin = document.getElementById("btn-login");
-        const btnLogout = document.getElementById("btn-logout");
-
-        // 🔑 Iniciar sesión manualmente
-        async function login() {
-            try {
-                const result = await signInWithPopup(auth, provider);
-                console.log("✅ Sesión iniciada:", result.user.email);
-
-                // Guardar usuario
-                localStorage.setItem("user", JSON.stringify(result.user));
-
-                // Redirigir SOLO si se usó el login, NO afecta al botón "Jugar"
-                window.location.href = "jugar_multi.html";
-
-            } catch (error) {
-                console.error("❌ Error en login:", error.code, error.message);
+        // Función de Login/Logout
+        async function toggleAuth() {
+            if (auth.currentUser) {
+                // Si ya está logueado → Logout
+                await signOut(auth);
+                console.log("Sesión cerrada");
+            } else {
+                // Si no está logueado → Login
+                try {
+                    const result = await signInWithPopup(auth, provider);
+                    console.log("Sesión iniciada:", result.user.email);
+                    console.log("Email:", result.user.email);
+                    console.log("Nombre:", result.user.displayName);
+                    console.log("Foto:", result.user.photoURL);
+                } catch (error) {
+                    console.error("Error en login:", error.message);
+                    alert("Error al iniciar sesión: " + error.message);
+                }
             }
         }
 
-        // 🚪 Cerrar sesión
-        async function logout() {
-            await signOut(auth);
-            localStorage.removeItem("user");
-            console.log("👋 Sesión cerrada.");
-        }
+        btnGoogle.addEventListener("click", toggleAuth);
 
-        btnLogin.addEventListener("click", login);
-        btnLogout.addEventListener("click", logout);
-
-        // 👀 Mostrar/ocultar botones según sesión
+        // Escuchar cambios en autenticación
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                btnLogin.style.display = "none";
-                btnLogout.style.display = "block";
+                // Usuario logueado
+                console.log("Usuario activo:", user.displayName);
+
+                btnGoogle.textContent = "Logout";
+                btnGoogle.style.background = "#ef4444";
+
+                userProfile.style.display = "flex";
+                userPhoto.src = user.photoURL || "Img/default-avatar.png";
+                userName.textContent = user.displayName || "Usuario";
+
             } else {
-                btnLogin.style.display = "block";
-                btnLogout.style.display = "none";
+                // Usuario NO logueado
+                console.log("No hay usuario activo");
+
+                btnGoogle.textContent = "Google";
+                btnGoogle.style.background = "";
+
+                userProfile.style.display = "none";
             }
         });
     </script>
 
     <script src="scripts/api/facebook.js"></script>
-    
-    <h1 class="title">Across the Stars</h1>
-    <div class="menu">  
-        <a href="modoJ.html" class="btn">Jugar</a>
-        <a href="opciones.html" class="btn">Opciones</a>
-        <a href="puntuaciones.html" class="btn">Puntuaciones</a>
-        <a href="facebook.html" class="btnFacebook">Facebook</a>
-        <button id="btn-login">Iniciar sesión con Google</button>
-        <button type="button" id="btn-logout">Logout</button>
-    </div>
-
 </body>
 </html>

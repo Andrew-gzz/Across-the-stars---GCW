@@ -1,15 +1,15 @@
-// src/systems/collisions.js
+// scripts/systems/collisions.js
 import * as THREE from 'three';
 
 export function createCollisions(scene) {
-  const boxA = new THREE.Box3();
-  const boxB = new THREE.Box3();
+	const boxA = new THREE.Box3();
+	const boxB = new THREE.Box3();
 
-  return {
-    update() {
-      // ejemplo: detectar colisiones entre dos grupos si los conoces
-      // boxA.setFromObject(obj1); boxB.setFromObject(obj2);
-      // if (boxA.intersectsBox(boxB)) { ... }
-    },
-  };
+	return {
+		update() {
+			// ejemplo: detectar colisiones entre dos grupos si los conoces
+			// boxA.setFromObject(obj1); boxB.setFromObject(obj2);
+			// if (boxA.intersectsBox(boxB)) { ... }
+		},
+	};
 }

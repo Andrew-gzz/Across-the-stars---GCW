@@ -1,3 +1,4 @@
+// scripts/levels/level3.js
 import * as THREE from 'three';
 import { loadModel } from '../core/assets.js';
 import { gameState } from '../core/gameState.js';
@@ -19,16 +20,16 @@ export async function loadLevel3(scene, physics) {
   const diamondsHUD = document.getElementById("diamantes");
   const tiempoHUD = document.getElementById("tiempo");
 
-  esmeraldasHUD.textContent = gameState.esmeraldas;
-  diamondsHUD.textContent = gameState.diamantes;
+	esmeraldasHUD.textContent = gameState.esmeraldas;
+	diamondsHUD.textContent = gameState.diamantes;
 
   // ---- LUCES ----
   const light = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(light);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-  dirLight.position.set(50, 100, 100);
-  scene.add(dirLight);
+	const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+	dirLight.position.set(50, 100, 100);
+	scene.add(dirLight);
 
   // ---- PISO INFINITO ----
   const textureLoader = new THREE.TextureLoader();
@@ -364,10 +365,18 @@ export async function loadLevel3(scene, physics) {
           esmeraldasHUD.textContent = gameState.esmeraldas;
         }
 
-        removeEnemy(enemy);
-      }
+				// ESMERALDA
+				if (enemy.type === "emerald") {
+					gameState.esmeraldas++;
+					esmeraldasHUD.textContent = gameState.esmeraldas;
+					console.log("🟩 Recogiste una ESMERALDA:", gameState.esmeraldas);
+				}
 
-    });
+				const ovniBBox = new THREE.Box3().setFromObject(ovni);
+				if (berniceBBox.intersectsBox(ovniBBox)) {
+					console.log("🚀 ¡Llegaste al OVNI! GANASTE");
+					gameState.paused = true;   // 🔥 PAUSAR TODO
+					bernice.isFrozen = true;
 
     // ---- SPAWNEO ----
     if (frames % spawnRate === 0) {
@@ -379,13 +388,10 @@ export async function loadLevel3(scene, physics) {
       const laneX = [-12, -6, 0, 6, 12];
       enemy.position.set(laneX[Math.floor(Math.random() * laneX.length)], 1.2, -160);
 
-      enemy.velocity = new THREE.Vector3(0, 0, 0.03);
-      enemy.zAcceleration = true;
-      enemy.bbox = new THREE.Box3().setFromObject(enemy);
+			const enemy = cloneModel(randomModel);
 
-      scene.add(enemy);
-      enemies.push(enemy);
-    }
+			const laneX = [-12, -6, 0, 6, 12];
+			const randomX = laneX[Math.floor(Math.random() * laneX.length)];
 
     // ---- MOVIMIENTO DE OBJETOS ----
     enemies.forEach(enemy => {
@@ -403,8 +409,9 @@ export async function loadLevel3(scene, physics) {
       enemy.bbox.setFromObject(enemy);
     });
 
-    frames++;
-  }
+			scene.add(enemy);
+			enemies.push(enemy);
+		}
 
   // evitar rotación indeseada
   bernice.rotation.set(0, Math.PI, 0);
@@ -412,5 +419,17 @@ export async function loadLevel3(scene, physics) {
   window.startGameLoop = animate;
   animate();
 
-  return { bernice };
+		// --- MOVIMIENTO ---
+		enemies.forEach(enemy => {
+			if (enemy.zAcceleration) enemy.velocity.z += 0.0003;
+			enemy.position.add(enemy.velocity);
+			enemy.bbox.setFromObject(enemy);
+		});
+
+		frames++;
+	}
+
+	animate();
+
+	return { bernice };
 }

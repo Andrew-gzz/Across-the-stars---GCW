@@ -1,3 +1,4 @@
+// scripts/main.js
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 
@@ -5,6 +6,7 @@ import * as CANNON from 'cannon-es';
 import { loadLevel1 } from './levels/level1.js';
 import { loadLevel2 } from './levels/level2.js';
 import { loadLevel3 } from './levels/level3.js';
+import { loadLevelM } from './levels/levelM.js';
 
 // Core
 import { createRenderer } from './core/renderer.js';
@@ -27,30 +29,33 @@ let tiempoInterval = null;
 // TIEMPO
 // -----------------------------------------------------
 export function iniciarTiempo() {
-    const tiempoHUD = document.getElementById("tiempo");
-    let segundos = 0;
+	const tiempoHUD = document.getElementById("tiempo");
+	let segundos = 0;
 
-    if (tiempoInterval) clearInterval(tiempoInterval);
+	if (tiempoInterval) clearInterval(tiempoInterval);
 
-    tiempoInterval = setInterval(() => {
-        if (gameState.paused) return;
+	tiempoInterval = setInterval(() => {
+		if (gameState.paused) return;
 
         segundos++;
 
         const min = String(Math.floor(segundos / 60)).padStart(2, "0");
         const sec = String(segundos % 60).padStart(2, "0");
 
-        tiempoHUD.textContent = `${min}:${sec}`;
-        gameState.tiempo = segundos;
+		const min = String(Math.floor(segundos / 60)).padStart(2, "0");
+		const sec = String(segundos % 60).padStart(2, "0");
 
-    }, 1000);
+		tiempoHUD.textContent = `${min}:${sec}`;
+		gameState.tiempo = segundos;
+
+	}, 1000);
 }
 
 export function detenerTiempo() {
-    if (tiempoInterval) {
-        clearInterval(tiempoInterval);
-        tiempoInterval = null;
-    }
+	if (tiempoInterval) {
+		clearInterval(tiempoInterval);
+		tiempoInterval = null;
+	}
 }
 
 // -----------------------------------------------------
@@ -67,6 +72,23 @@ window.restartGame = function () {
 // INICIAR CUANDO CARGA EL DOM
 // -----------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
+	const urlParams = new URLSearchParams(window.location.search);
+	const levelParam = urlParams.get('level') || '1';
+
+	console.log("📋 Parámetro level recibido:", levelParam);
+
+	// Detectar si es nivel multijugador
+	let level;
+	if (levelParam === 'M') {
+		level = 'M';
+		console.log("🎮 Modo MULTIJUGADOR detectado");
+	} else {
+		level = parseInt(levelParam);
+		console.log("🎮 Modo INDIVIDUAL - Nivel:", level);
+	}
+
+	new Main(level);
+});
 
     const urlParams = new URLSearchParams(window.location.search);
     const level = parseInt(urlParams.get('level')) || 1;
@@ -159,4 +181,94 @@ class Main {
 
         this.loop.start();
     }
+}
+class Main {
+	constructor(level = 1) {
+		this.level = level;
+		this._Initialize();
+	}
+
+	async _Initialize() {
+
+		// Contenedor
+		const container = document.querySelector('.game-area');
+		if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
+
+		this.container = container;
+		this.scene = createScene();
+		this.camera = createCamera(container);
+		this.renderer = createRenderer(container);
+		this.loop = new Loop(this.camera, this.scene, this.renderer);
+
+		new Resizer(container, this.camera, this.renderer);
+
+		// HDRI + ambiente
+		createHDRI(this.scene, '/models/Level2/HDRi.jpg');
+		const { group: environment } = createEnvironment();
+		this.scene.add(environment);
+
+		// Physics
+		this.physics = createPhysics();
+
+		console.log("🔄 Cargando nivel:", this.level);
+
+		let result = null;
+
+		// 🎮 SWITCH MEJORADO CON SOPORTE MULTIJUGADOR
+		if (this.level === 'M') {
+			// Nivel Multijugador
+			console.log("🌐 Cargando nivel MULTIJUGADOR...");
+			result = await loadLevelM(this.scene, this.physics);
+		} else {
+			// Niveles Individuales
+			switch (this.level) {
+				case 1:
+					console.log("📍 Cargando Level 1...");
+					result = await loadLevel1(this.scene, this.physics);
+					break;
+
+				case 2:
+					console.log("📍 Cargando Level 2...");
+					result = await loadLevel2(this.scene, this.physics);
+					break;
+
+				case 3:
+					console.log("📍 Cargando Level 3...");
+					result = await loadLevel3(this.scene, this.physics);
+					break;
+
+				default:
+					console.warn("⚠️ Nivel no encontrado, cargando Level 1 por defecto");
+					result = await loadLevel1(this.scene, this.physics);
+			}
+		}
+
+		// Verificar que Bernice existe
+		if (!result || !result.bernice) {
+			throw new Error("❌ Error: el nivel no devolvió la Bernice.");
+		}
+
+		this.bernice = result.bernice;
+		console.log("✅ Bernice cargada correctamente:", this.bernice);
+
+		this._characterController = new BasicCharacterController({
+			camera: this.camera,
+			scene: this.scene,
+			bernice: this.bernice,   // ← AQUÍ SE PASA LA BERNICE CORRECTA
+		});
+
+		this._thirdPersonCamera = new ThirdPersonCamera({
+			camera: this.camera,
+			target: this._characterController,
+		});
+
+
+		// LOOP
+		this.loop.addSystem((dt) => this.physics.update(dt));
+		this.loop.addSystem((dt) => this._characterController.Update(dt));
+		this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+
+		this.loop.start();
+		console.log("🚀 Loop de juego iniciado");
+	}
 }

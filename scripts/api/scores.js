@@ -1,3 +1,4 @@
+// scripts/api/scores.js
 let userAccessToken = null;
 let userID = null;
 
