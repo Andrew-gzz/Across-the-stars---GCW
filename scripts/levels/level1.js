@@ -1,9 +1,10 @@
-    import * as THREE from 'three';
-    import * as CANNON from 'cannon-es';
-    import { loadModel } from '../core/assets.js';
-    import { createConvexShapeFromGeometry } from '../systems/physics.js';
+// scripts/levels/level1.js
+import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+import { loadModel } from '../core/assets.js';
+import { createConvexShapeFromGeometry } from '../systems/physics.js';
 
-    export async function loadLevel1(scene, physics) {
+export async function loadLevel1(scene, physics) {
     const light = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(light);
 
@@ -18,10 +19,10 @@
 
     escenario.traverse(child => {
         if (child.isMesh && child.geometry) {
-        const shape = createConvexShapeFromGeometry(child.geometry);
-        if (shape) {
-            physics.add(child, shape, 0); // suelo estático
-        }
+            const shape = createConvexShapeFromGeometry(child.geometry);
+            if (shape) {
+                physics.add(child, shape, 0); // suelo estático
+            }
         }
     });
 
@@ -33,14 +34,14 @@
 
     esmeralda.traverse(child => {
         if (child.isMesh && child.geometry) {
-        const shape = createConvexShapeFromGeometry(child.geometry);
-        if (shape) {
-            physics.add(child, shape, 0); // masa 0 = estático (no cae)
-        }
+            const shape = createConvexShapeFromGeometry(child.geometry);
+            if (shape) {
+                physics.add(child, shape, 0); // masa 0 = estático (no cae)
+            }
         }
     });
 
-    
+
 
     const limitSize = 300;
     const wallThickness = 5;
@@ -66,10 +67,10 @@
         scene.add(wall);
 
         const wallShape = new CANNON.Box(
-        new CANNON.Vec3(limitSize / 2, wallHeight / 2, wallThickness / 2)
+            new CANNON.Vec3(limitSize / 2, wallHeight / 2, wallThickness / 2)
         );
         physics.add(wall, wallShape, 0);
     }
 
     console.log('✅ Nivel 1 cargado con escenario, esmeralda y límites invisibles');
-    }
+}

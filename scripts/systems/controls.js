@@ -1,175 +1,175 @@
-// src/systems/controls.js
+// scripts/systems/controls.js
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
 
 // ======= PROXY =======
 class BasicCharacterControllerProxy {
-  constructor(animations) {
-    this._animations = animations;
-  }
-  get animations() {
-    return this._animations;
-  }
+	constructor(animations) {
+		this._animations = animations;
+	}
+	get animations() {
+		return this._animations;
+	}
 }
 
 // ======= CONTROLADOR PRINCIPAL =======
 export class BasicCharacterController {
-  constructor(params) {
-    this._Init(params);
-  }
+	constructor(params) {
+		this._Init(params);
+	}
 
-  _Init(params) {
-    this._params = params;   // { scene, camera, bernice }
+	_Init(params) {
+		this._params = params;   // { scene, camera, bernice }
 
-    // aquí usamos la Bernice cargada en level3.js
-    this._target = this._params.bernice;
+		// aquí usamos la Bernice cargada en level3.js
+		this._target = this._params.bernice;
 
-    this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
-    this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
-    this._velocity = new THREE.Vector3(0, 0, 0);
-    this._position = new THREE.Vector3();
+		this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
+		this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
+		this._velocity = new THREE.Vector3(0, 0, 0);
+		this._position = new THREE.Vector3();
 
-    this._animations = {};
-    this._input = new BasicCharacterControllerInput();
-    this._stateMachine = new CharacterFSM(
-      new BasicCharacterControllerProxy(this._animations)
-    );
+		this._animations = {};
+		this._input = new BasicCharacterControllerInput();
+		this._stateMachine = new CharacterFSM(
+			new BasicCharacterControllerProxy(this._animations)
+		);
 
-    // cargar solo animaciones (NO Bernice)
-    this._LoadAnimations();
-  }
+		// cargar solo animaciones (NO Bernice)
+		this._LoadAnimations();
+	}
 
-  // ======= CARGAR ANIMACIONES FBX =======
-  _LoadAnimations() {
-    this._mixer = new THREE.AnimationMixer(this._target);
+	// ======= CARGAR ANIMACIONES FBX =======
+	_LoadAnimations() {
+		this._mixer = new THREE.AnimationMixer(this._target);
 
-    this._manager = new THREE.LoadingManager();
-    this._manager.onLoad = () => {
-      this._stateMachine.SetState('idle');
-    };
+		this._manager = new THREE.LoadingManager();
+		this._manager.onLoad = () => {
+			this._stateMachine.SetState('idle');
+		};
 
-    const _OnLoad = (animName, anim) => {
-      const clip = anim.animations[0];
-      const action = this._mixer.clipAction(clip);
-      this._animations[animName] = { clip, action };
-    };
+		const _OnLoad = (animName, anim) => {
+			const clip = anim.animations[0];
+			const action = this._mixer.clipAction(clip);
+			this._animations[animName] = { clip, action };
+		};
 
-    const loader = new FBXLoader(this._manager);
-    loader.setPath('/models/');
+		const loader = new FBXLoader(this._manager);
+		loader.setPath('/models/');
 
-    loader.load('walk.fbx', (a) => _OnLoad('walk', a));
-    loader.load('run.fbx', (a) => _OnLoad('run', a));
-    loader.load('idle.fbx', (a) => _OnLoad('idle', a));
-    loader.load('dance.fbx', (a) => _OnLoad('dance', a));
-  }
+		loader.load('walk.fbx', (a) => _OnLoad('walk', a));
+		loader.load('run.fbx', (a) => _OnLoad('run', a));
+		loader.load('idle.fbx', (a) => _OnLoad('idle', a));
+		loader.load('dance.fbx', (a) => _OnLoad('dance', a));
+	}
 
-  get Position() { return this._position; }
-  get Rotation() { return this._target.quaternion; }
+	get Position() { return this._position; }
+	get Rotation() { return this._target.quaternion; }
 
-  // ======= UPDATE GENERAL =======
-  Update(timeInSeconds) {
+	// ======= UPDATE GENERAL =======
+	Update(timeInSeconds) {
 
-    if (this._target.isFrozen) {
-      // bloquear movimiento
-      Object.keys(this._input._keys).forEach(k => this._input._keys[k] = false);
-      this._velocity.set(0, 0, 0);
+		if (this._target.isFrozen) {
+			// bloquear movimiento
+			Object.keys(this._input._keys).forEach(k => this._input._keys[k] = false);
+			this._velocity.set(0, 0, 0);
 
-      if (this._stateMachine)
-        this._stateMachine.SetState('idle');
+			if (this._stateMachine)
+				this._stateMachine.SetState('idle');
 
-      return;
-    }
+			return;
+		}
 
-    if (!this._stateMachine._currentState) {
-      return;
-    }
+		if (!this._stateMachine._currentState) {
+			return;
+		}
 
-    this._stateMachine.Update(timeInSeconds, this._input);
+		this._stateMachine.Update(timeInSeconds, this._input);
 
-    const velocity = this._velocity;
-    const frameDecceleration = new THREE.Vector3(
-      velocity.x * this._decceleration.x,
-      velocity.y * this._decceleration.y,
-      velocity.z * this._decceleration.z
-    );
+		const velocity = this._velocity;
+		const frameDecceleration = new THREE.Vector3(
+			velocity.x * this._decceleration.x,
+			velocity.y * this._decceleration.y,
+			velocity.z * this._decceleration.z
+		);
 
-    frameDecceleration.multiplyScalar(timeInSeconds);
-    frameDecceleration.z = Math.sign(frameDecceleration.z) *
-      Math.min(Math.abs(frameDecceleration.z), Math.abs(velocity.z));
+		frameDecceleration.multiplyScalar(timeInSeconds);
+		frameDecceleration.z = Math.sign(frameDecceleration.z) *
+			Math.min(Math.abs(frameDecceleration.z), Math.abs(velocity.z));
 
-    velocity.add(frameDecceleration);
+		velocity.add(frameDecceleration);
 
-    const controlObject = this._target;
-    const _Q = new THREE.Quaternion();
-    const _A = new THREE.Vector3();
-    const _R = controlObject.quaternion.clone();
+		const controlObject = this._target;
+		const _Q = new THREE.Quaternion();
+		const _A = new THREE.Vector3();
+		const _R = controlObject.quaternion.clone();
 
-    const acc = this._acceleration.clone();
-    if (this._input._keys.shift)
-      acc.multiplyScalar(5.0);
+		const acc = this._acceleration.clone();
+		if (this._input._keys.shift)
+			acc.multiplyScalar(5.0);
 
-    // ---- Movimiento ----
-    if (this._input._keys.forward)
-      velocity.z += acc.z * timeInSeconds;
-    if (this._input._keys.backward)
-      velocity.z -= acc.z * timeInSeconds;
+		// ---- Movimiento ----
+		if (this._input._keys.forward)
+			velocity.z += acc.z * timeInSeconds;
+		if (this._input._keys.backward)
+			velocity.z -= acc.z * timeInSeconds;
 
-    if (this._input._keys.left) {
-      _A.set(0, 1, 0);
-      _Q.setFromAxisAngle(_A, 4.0 * Math.PI * timeInSeconds * acc.y);
-      _R.multiply(_Q);
-    }
-    if (this._input._keys.right) {
-      _A.set(0, 1, 0);
-      _Q.setFromAxisAngle(_A, -4.0 * Math.PI * timeInSeconds * acc.y);
-      _R.multiply(_Q);
-    }
+		if (this._input._keys.left) {
+			_A.set(0, 1, 0);
+			_Q.setFromAxisAngle(_A, 4.0 * Math.PI * timeInSeconds * acc.y);
+			_R.multiply(_Q);
+		}
+		if (this._input._keys.right) {
+			_A.set(0, 1, 0);
+			_Q.setFromAxisAngle(_A, -4.0 * Math.PI * timeInSeconds * acc.y);
+			_R.multiply(_Q);
+		}
 
-    controlObject.quaternion.copy(_R);
+		controlObject.quaternion.copy(_R);
 
-    // ---- Calcular desplazamiento ----
-    const forward = new THREE.Vector3(0, 0, 1);
-    forward.applyQuaternion(controlObject.quaternion).normalize();
-    forward.multiplyScalar(velocity.z * timeInSeconds);
+		// ---- Calcular desplazamiento ----
+		const forward = new THREE.Vector3(0, 0, 1);
+		forward.applyQuaternion(controlObject.quaternion).normalize();
+		forward.multiplyScalar(velocity.z * timeInSeconds);
 
-    controlObject.position.add(forward);
+		controlObject.position.add(forward);
 
-    this._position.copy(controlObject.position);
+		this._position.copy(controlObject.position);
 
-    if (this._mixer)
-      this._mixer.update(timeInSeconds);
-  }
+		if (this._mixer)
+			this._mixer.update(timeInSeconds);
+	}
 }
 
 // ======= INPUT KEYS =======
 class BasicCharacterControllerInput {
-  constructor() {
-    this._keys = { forward: false, backward: false, left: false, right: false, space: false, shift: false };
-    document.addEventListener('keydown', (e) => this._onKeyDown(e));
-    document.addEventListener('keyup', (e) => this._onKeyUp(e));
-  }
+	constructor() {
+		this._keys = { forward: false, backward: false, left: false, right: false, space: false, shift: false };
+		document.addEventListener('keydown', (e) => this._onKeyDown(e));
+		document.addEventListener('keyup', (e) => this._onKeyUp(e));
+	}
 
-  _onKeyDown(e) {
-    switch (e.key.toLowerCase()) {
-      case 'w': this._keys.forward = true; break;
-      case 's': this._keys.backward = true; break;
-      case 'a': this._keys.left = true; break;
-      case 'd': this._keys.right = true; break;
-      case ' ': this._keys.space = true; break;
-      case 'shift': this._keys.shift = true; break;
-    }
-  }
+	_onKeyDown(e) {
+		switch (e.key.toLowerCase()) {
+			case 'w': this._keys.forward = true; break;
+			case 's': this._keys.backward = true; break;
+			case 'a': this._keys.left = true; break;
+			case 'd': this._keys.right = true; break;
+			case ' ': this._keys.space = true; break;
+			case 'shift': this._keys.shift = true; break;
+		}
+	}
 
-  _onKeyUp(e) {
-    switch (e.key.toLowerCase()) {
-      case 'w': this._keys.forward = false; break;
-      case 's': this._keys.backward = false; break;
-      case 'a': this._keys.left = false; break;
-      case 'd': this._keys.right = false; break;
-      case ' ': this._keys.space = false; break;
-      case 'shift': this._keys.shift = false; break;
-    }
-  }
+	_onKeyUp(e) {
+		switch (e.key.toLowerCase()) {
+			case 'w': this._keys.forward = false; break;
+			case 's': this._keys.backward = false; break;
+			case 'a': this._keys.left = false; break;
+			case 'd': this._keys.right = false; break;
+			case ' ': this._keys.space = false; break;
+			case 'shift': this._keys.shift = false; break;
+		}
+	}
 }
 
 // ======= FSM + STATES (IGUAL QUE TÚ, NO LOS MUEVO) =======
@@ -178,245 +178,245 @@ class BasicCharacterControllerInput {
 
 
 class FiniteStateMachine {
-  constructor() {
-    this._states = {};
-    this._currentState = null;
-  }
+	constructor() {
+		this._states = {};
+		this._currentState = null;
+	}
 
-  _AddState(name, type) {
-    this._states[name] = type;
-  }
+	_AddState(name, type) {
+		this._states[name] = type;
+	}
 
-  SetState(name) {
-    const prevState = this._currentState;
-    
-    if (prevState) {
-      if (prevState.Name == name) {
-        return;
-      }
-      prevState.Exit();
-    }
+	SetState(name) {
+		const prevState = this._currentState;
 
-    const state = new this._states[name](this);
+		if (prevState) {
+			if (prevState.Name == name) {
+				return;
+			}
+			prevState.Exit();
+		}
 
-    this._currentState = state;
-    state.Enter(prevState);
-  }
+		const state = new this._states[name](this);
 
-  Update(timeElapsed, input) {
-    if (this._currentState) {
-      this._currentState.Update(timeElapsed, input);
-    }
-  }
+		this._currentState = state;
+		state.Enter(prevState);
+	}
+
+	Update(timeElapsed, input) {
+		if (this._currentState) {
+			this._currentState.Update(timeElapsed, input);
+		}
+	}
 };
 
 
 class CharacterFSM extends FiniteStateMachine {
-  constructor(proxy) {
-    super();
-    this._proxy = proxy;
-    this._Init();
-  }
+	constructor(proxy) {
+		super();
+		this._proxy = proxy;
+		this._Init();
+	}
 
-  _Init() {
-    this._AddState('idle', IdleState);
-    this._AddState('walk', WalkState);
-    this._AddState('run', RunState);
-    this._AddState('dance', DanceState);
-  }
+	_Init() {
+		this._AddState('idle', IdleState);
+		this._AddState('walk', WalkState);
+		this._AddState('run', RunState);
+		this._AddState('dance', DanceState);
+	}
 };
 
 
 class State {
-  constructor(parent) {
-    this._parent = parent;
-  }
+	constructor(parent) {
+		this._parent = parent;
+	}
 
-  Enter() {}
-  Exit() {}
-  Update() {}
+	Enter() { }
+	Exit() { }
+	Update() { }
 };
 
 
 class DanceState extends State {
-  constructor(parent) {
-    super(parent);
+	constructor(parent) {
+		super(parent);
 
-    this._FinishedCallback = () => {
-      this._Finished();
-    }
-  }
+		this._FinishedCallback = () => {
+			this._Finished();
+		}
+	}
 
-  get Name() {
-    return 'dance';
-  }
+	get Name() {
+		return 'dance';
+	}
 
-  Enter(prevState) {
-    const curAction = this._parent._proxy._animations['dance'].action;
-    const mixer = curAction.getMixer();
-    mixer.addEventListener('finished', this._FinishedCallback);
+	Enter(prevState) {
+		const curAction = this._parent._proxy._animations['dance'].action;
+		const mixer = curAction.getMixer();
+		mixer.addEventListener('finished', this._FinishedCallback);
 
-    if (prevState) {
-      const prevAction = this._parent._proxy._animations[prevState.Name].action;
+		if (prevState) {
+			const prevAction = this._parent._proxy._animations[prevState.Name].action;
 
-      curAction.reset();  
-      curAction.setLoop(THREE.LoopOnce, 1);
-      curAction.clampWhenFinished = true;
-      curAction.crossFadeFrom(prevAction, 0.2, true);
-      curAction.play();
-    } else {
-      curAction.play();
-    }
-  }
+			curAction.reset();
+			curAction.setLoop(THREE.LoopOnce, 1);
+			curAction.clampWhenFinished = true;
+			curAction.crossFadeFrom(prevAction, 0.2, true);
+			curAction.play();
+		} else {
+			curAction.play();
+		}
+	}
 
-  _Finished() {
-    this._Cleanup();
-    this._parent.SetState('idle');
-  }
+	_Finished() {
+		this._Cleanup();
+		this._parent.SetState('idle');
+	}
 
-  _Cleanup() {
-    const action = this._parent._proxy._animations['dance'].action;
-    
-    action.getMixer().removeEventListener('finished', this._CleanupCallback);
-  }
+	_Cleanup() {
+		const action = this._parent._proxy._animations['dance'].action;
 
-  Exit() {
-    this._Cleanup();
-  }
+		action.getMixer().removeEventListener('finished', this._CleanupCallback);
+	}
 
-  Update(_) {
-  }
+	Exit() {
+		this._Cleanup();
+	}
+
+	Update(_) {
+	}
 };
 
 
 class WalkState extends State {
-  constructor(parent) {
-    super(parent);
-  }
+	constructor(parent) {
+		super(parent);
+	}
 
-  get Name() {
-    return 'walk';
-  }
+	get Name() {
+		return 'walk';
+	}
 
-  Enter(prevState) {
-    const curAction = this._parent._proxy._animations['walk'].action;
-    if (prevState) {
-      const prevAction = this._parent._proxy._animations[prevState.Name].action;
+	Enter(prevState) {
+		const curAction = this._parent._proxy._animations['walk'].action;
+		if (prevState) {
+			const prevAction = this._parent._proxy._animations[prevState.Name].action;
 
-      curAction.enabled = true;
+			curAction.enabled = true;
 
-      if (prevState.Name == 'run') {
-        const ratio = curAction.getClip().duration / prevAction.getClip().duration;
-        curAction.time = prevAction.time * ratio;
-      } else {
-        curAction.time = 0.0;
-        curAction.setEffectiveTimeScale(1.0);
-        curAction.setEffectiveWeight(1.0);
-      }
+			if (prevState.Name == 'run') {
+				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
+				curAction.time = prevAction.time * ratio;
+			} else {
+				curAction.time = 0.0;
+				curAction.setEffectiveTimeScale(1.0);
+				curAction.setEffectiveWeight(1.0);
+			}
 
-      curAction.crossFadeFrom(prevAction, 0.5, true);
-      curAction.play();
-    } else {
-      curAction.play();
-    }
-  }
+			curAction.crossFadeFrom(prevAction, 0.5, true);
+			curAction.play();
+		} else {
+			curAction.play();
+		}
+	}
 
-  Exit() {
-  }
+	Exit() {
+	}
 
-  Update(timeElapsed, input) {
-    if (input._keys.forward || input._keys.backward) {
-      if (input._keys.shift) {
-        this._parent.SetState('run');
-      }
-      return;
-    }
+	Update(timeElapsed, input) {
+		if (input._keys.forward || input._keys.backward) {
+			if (input._keys.shift) {
+				this._parent.SetState('run');
+			}
+			return;
+		}
 
-    this._parent.SetState('idle');
-  }
+		this._parent.SetState('idle');
+	}
 };
 
 
 class RunState extends State {
-  constructor(parent) {
-    super(parent);
-  }
+	constructor(parent) {
+		super(parent);
+	}
 
-  get Name() {
-    return 'run';
-  }
+	get Name() {
+		return 'run';
+	}
 
-  Enter(prevState) {
-    const curAction = this._parent._proxy._animations['run'].action;
-    if (prevState) {
-      const prevAction = this._parent._proxy._animations[prevState.Name].action;
+	Enter(prevState) {
+		const curAction = this._parent._proxy._animations['run'].action;
+		if (prevState) {
+			const prevAction = this._parent._proxy._animations[prevState.Name].action;
 
-      curAction.enabled = true;
+			curAction.enabled = true;
 
-      if (prevState.Name == 'walk') {
-        const ratio = curAction.getClip().duration / prevAction.getClip().duration;
-        curAction.time = prevAction.time * ratio;
-      } else {
-        curAction.time = 0.0;
-        curAction.setEffectiveTimeScale(1.0);
-        curAction.setEffectiveWeight(1.0);
-      }
+			if (prevState.Name == 'walk') {
+				const ratio = curAction.getClip().duration / prevAction.getClip().duration;
+				curAction.time = prevAction.time * ratio;
+			} else {
+				curAction.time = 0.0;
+				curAction.setEffectiveTimeScale(1.0);
+				curAction.setEffectiveWeight(1.0);
+			}
 
-      curAction.crossFadeFrom(prevAction, 0.5, true);
-      curAction.play();
-    } else {
-      curAction.play();
-    }
-  }
+			curAction.crossFadeFrom(prevAction, 0.5, true);
+			curAction.play();
+		} else {
+			curAction.play();
+		}
+	}
 
-  Exit() {
-  }
+	Exit() {
+	}
 
-  Update(timeElapsed, input) {
-    if (input._keys.forward || input._keys.backward) {
-      if (!input._keys.shift) {
-        this._parent.SetState('walk');
-      }
-      return;
-    }
+	Update(timeElapsed, input) {
+		if (input._keys.forward || input._keys.backward) {
+			if (!input._keys.shift) {
+				this._parent.SetState('walk');
+			}
+			return;
+		}
 
-    this._parent.SetState('idle');
-  }
+		this._parent.SetState('idle');
+	}
 };
 
 
 class IdleState extends State {
-  constructor(parent) {
-    super(parent);
-  }
+	constructor(parent) {
+		super(parent);
+	}
 
-  get Name() {
-    return 'idle';
-  }
+	get Name() {
+		return 'idle';
+	}
 
-  Enter(prevState) {
-    const idleAction = this._parent._proxy._animations['idle'].action;
-    if (prevState) {
-      const prevAction = this._parent._proxy._animations[prevState.Name].action;
-      idleAction.time = 0.0;
-      idleAction.enabled = true;
-      idleAction.setEffectiveTimeScale(1.0);
-      idleAction.setEffectiveWeight(1.0);
-      idleAction.crossFadeFrom(prevAction, 0.5, true);
-      idleAction.play();
-    } else {
-      idleAction.play();
-    }
-  }
+	Enter(prevState) {
+		const idleAction = this._parent._proxy._animations['idle'].action;
+		if (prevState) {
+			const prevAction = this._parent._proxy._animations[prevState.Name].action;
+			idleAction.time = 0.0;
+			idleAction.enabled = true;
+			idleAction.setEffectiveTimeScale(1.0);
+			idleAction.setEffectiveWeight(1.0);
+			idleAction.crossFadeFrom(prevAction, 0.5, true);
+			idleAction.play();
+		} else {
+			idleAction.play();
+		}
+	}
 
-  Exit() {
-  }
+	Exit() {
+	}
 
-  Update(_, input) {
-    if (input._keys.forward || input._keys.backward) {
-      this._parent.SetState('walk');
-    } else if (input._keys.space) {
-      this._parent.SetState('dance');
-    }
-  }
+	Update(_, input) {
+		if (input._keys.forward || input._keys.backward) {
+			this._parent.SetState('walk');
+		} else if (input._keys.space) {
+			this._parent.SetState('dance');
+		}
+	}
 };
