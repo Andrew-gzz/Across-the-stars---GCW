@@ -2,11 +2,21 @@ import * as THREE from 'three';
 import { loadModel } from '../core/assets.js';
 import { gameState } from '../core/gameState.js';
 
-export async function loadLevel3(scene) {
+export async function loadLevel3(scene, physics) {
+
+  // ✔ Recuperar dificultad del localStorage
+  const dificultad = (localStorage.getItem("dificultad") || "normal").toLowerCase();
+
+  let tiempoActivado;
+  if (dificultad === "facil") tiempoActivado = 10;
+  else if (dificultad === "dificil") tiempoActivado = 4;
+
+  console.log("Dificultad:", dificultad, "Tiempo:", tiempoActivado);
 
   // --- HUD ---
   const esmeraldasHUD = document.getElementById("esmeraldas");
   const diamondsHUD = document.getElementById("diamantes");
+  const tiempoHUD = document.getElementById("tiempo");
 
   esmeraldasHUD.textContent = gameState.esmeraldas;
   diamondsHUD.textContent = gameState.diamantes;
@@ -20,7 +30,6 @@ export async function loadLevel3(scene) {
   dirLight.position.set(50, 100, 100);
   scene.add(dirLight);
 
-
   // --- PISO ---
   const groundGeometry = new THREE.BoxGeometry(40, 0.5, 200);
   const groundMaterial = new THREE.MeshStandardMaterial({ color: '#0369a1' });
@@ -28,7 +37,6 @@ export async function loadLevel3(scene) {
   ground.position.set(0, -2, 0);
   ground.receiveShadow = true;
   scene.add(ground);
-
 
   // --- CARGAR BERNICE ---
   const bernice = await loadModel('/models/Bernice.fbx');
@@ -43,8 +51,7 @@ export async function loadLevel3(scene) {
 
   console.log("Bernice cargada:", bernice);
 
-
-  // --- OVNI AL FINAL DE LA PISTA ---
+  // --- OVNI ---
   const ovni = await loadModel('/models/ovni.glb');
   ovni.scale.setScalar(0.5);
   ovni.position.set(0, -2, -95);
@@ -60,12 +67,10 @@ export async function loadLevel3(scene) {
   ovniGlow.castShadow = false;
   ovni.add(ovniGlow);
 
-  // --- Animación del OVNI ---
   let ovniTime = 0;
 
-
   // -------------------------------------------------------
-  // 🔥 CARGA DE MODELOS PARA ENEMIGOS y OBJETOS
+  // 🔥 CARGA DE MODELOS DE OBJETOS
   // -------------------------------------------------------
 
   const baseAsteroid = await loadModel('/models/asteroid2.glb');
@@ -80,106 +85,114 @@ export async function loadLevel3(scene) {
   baseEsmeralda.scale.setScalar(2);
   baseEsmeralda.type = "emerald";
 
-  // --- THUNDER / POTENCIADOR DE VELOCIDAD ---
   const baseThunder = await loadModel('/models/thunder2.glb');
   baseThunder.scale.setScalar(1.5);
   baseThunder.type = "thunder";
 
-
   const models = [baseAsteroid, baseDiamante, baseEsmeralda, baseThunder];
 
-
-  // Función para clonar modelos sin compartir materiales
+  // Función para clonar
   function cloneModel(model) {
     const clone = model.clone(true);
     clone.type = model.type;
-
     clone.traverse(obj => {
       if (obj.isMesh) {
         obj.castShadow = true;
         obj.receiveShadow = true;
       }
     });
-
     return clone;
   }
 
-  // Lista de enemigos
   const enemies = [];
   let frames = 0;
   let spawnRate = 180;
 
   function removeEnemy(enemy) {
     enemy.removeFromParent();
-    const index = enemies.indexOf(enemy);
-    if (index !== -1) enemies.splice(index, 1);
+    const i = enemies.indexOf(enemy);
+    if (i !== -1) enemies.splice(i, 1);
   }
 
-  // Pantalla de victoria
+  // Pantallas
   function mostrarWin() {
     const gameArea = document.querySelector(".game-area");
     if (!gameArea) return;
 
     const overlay = document.createElement("div");
     overlay.id = "win-screen";
-    overlay.style.position = "absolute";
-    overlay.style.top = "0";
-    overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.height = "100%";
-    overlay.style.background = "rgba(0,0,0,0.8)";
-    overlay.style.backdropFilter = "blur(5px)";
-    overlay.style.display = "flex";
-    overlay.style.justifyContent = "center";
-    overlay.style.alignItems = "center";
-    overlay.style.zIndex = "100";
-
+    overlay.style = `
+      position:absolute;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.8);backdrop-filter:blur(5px);
+      display:flex;justify-content:center;align-items:center;z-index:100;
+    `;
     const img = document.createElement("img");
-    img.src = "Img/youWin.png";   // 🔥 IMAGEN DE VICTORIA
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-
+    img.src = "Img/youWin.png";
+    img.style = "width:100%;height:100%;object-fit:cover;";
     overlay.appendChild(img);
     gameArea.appendChild(overlay);
   }
 
-  // Pantalla de game over
   function mostrarGameOver() {
     const gameArea = document.querySelector(".game-area");
     if (!gameArea) return;
 
     const overlay = document.createElement("div");
     overlay.id = "gameover-screen";
-    overlay.style.position = "absolute";
-    overlay.style.top = "0";
-    overlay.style.left = "0";
-    overlay.style.width = "100%";
-    overlay.style.height = "100%";
-    overlay.style.background = "rgba(0,0,0,0.8)";
-    overlay.style.backdropFilter = "blur(5px)";
-    overlay.style.display = "flex";
-    overlay.style.justifyContent = "center";
-    overlay.style.alignItems = "center";
-    overlay.style.zIndex = "100";
-
+    overlay.style = `
+      position:absolute;top:0;left:0;width:100%;height:100%;
+      background:rgba(0,0,0,0.8);backdrop-filter:blur(5px);
+      display:flex;justify-content:center;align-items:center;z-index:100;
+    `;
     const img = document.createElement("img");
     img.src = "Img/lose.png";
-    img.style.width = "100%";
-    img.style.height = "100%";
-    img.style.objectFit = "cover";
-
+    img.style = "width:100%;height:100%;object-fit:cover;";
     overlay.appendChild(img);
     gameArea.appendChild(overlay);
   }
 
   const thunderHUD = document.getElementById("poteciador");
 
-  //Boost de velocidad
-  let speedBoost = false;
-  let speedBoostTimeout = null;
+  // Boost
+  gameState.thunderActive = false;
   let normalSpeed = 0.03;
-  let boostedSpeed = 0.12; // Ajusta como quieras
+
+  // -------------------------------------------------------
+  // ⏳ TIMER SOLO EN DIFICULTAD "dificil"
+  // -------------------------------------------------------
+  if (dificultad === "dificil") {
+
+    gameState.timeLeft = 60;
+
+    function formatTime(s) {
+      const m = Math.floor(s / 60).toString().padStart(2, "0");
+      const ss = (s % 60).toString().padStart(2, "0");
+      return `${m}:${ss}`;
+    }
+
+    tiempoHUD.textContent = formatTime(gameState.timeLeft);
+
+    gameState.timeInterval = setInterval(() => {
+      if (gameState.paused) return;
+
+      gameState.timeLeft--;
+      tiempoHUD.textContent = formatTime(gameState.timeLeft);
+
+      if (gameState.timeLeft <= 0) {
+        clearInterval(gameState.timeInterval);
+        gameState.paused = true;
+        console.log("⏰ Tiempo agotado — GAME OVER");
+        mostrarGameOver();
+      }
+
+    }, 1000);
+
+  } else {
+    // Fácil / Normal → no hay tiempo
+    tiempoHUD.textContent = "--:--";
+    gameState.timeInterval = null;
+  }
+  
 
 
   // -------------------------------------------------------
@@ -190,7 +203,7 @@ export async function loadLevel3(scene) {
     if (gameState.paused) return;
     requestAnimationFrame(animate);
 
-    // --- Animación OVNI ---
+    // OVNI animación
     ovniTime += 0.02;
     ovni.position.y = -1 + Math.sin(ovniTime * 2) * 1.5;
     ovni.position.x = Math.sin(ovniTime * 0.7) * 10;
@@ -199,96 +212,85 @@ export async function loadLevel3(scene) {
     ovniLight.intensity = 2 + Math.sin(ovniTime * 3) * 0.7;
     ovniGlow.intensity = 1 + Math.cos(ovniTime * 3) * 0.4;
 
-    // Actualizar BBox
     berniceBBox.setFromObject(bernice);
 
-    // --- COLISIONES ---
+    // ---- COLISIONES ----
     enemies.forEach(enemy => {
 
       if (berniceBBox.intersectsBox(enemy.bbox)) {
-        
+
+        // ⚡ THUNDER
         if (enemy.type === "thunder") {
 
           console.log("⚡ Potenciador ACTIVADO");
 
           gameState.thunderActive = true;
-
-          // Velocidad aumentada
           bernice.speedMultiplier = 2.5;
 
-          // Tiempo inicial
           gameState.thunderTime = 3;
           thunderHUD.textContent = gameState.thunderTime + "s";
 
-          // Cancelar intervalos anteriores
           if (gameState.thunderInterval) clearInterval(gameState.thunderInterval);
           if (gameState.thunderTimeout) clearTimeout(gameState.thunderTimeout);
 
-          // 🟡 Cuenta regresiva
           gameState.thunderInterval = setInterval(() => {
-              gameState.thunderTime--;
+            gameState.thunderTime--;
+            if (gameState.thunderTime >= 0)
+              thunderHUD.textContent = gameState.thunderTime + "s";
 
-              if (gameState.thunderTime >= 0) {
-                  thunderHUD.textContent = gameState.thunderTime + "s";
-              }
-
-              if (gameState.thunderTime <= 0) {
-                  clearInterval(gameState.thunderInterval);
-              }
+            if (gameState.thunderTime <= 0)
+              clearInterval(gameState.thunderInterval);
 
           }, 1000);
 
-          // 🔵 Fin del boost
           gameState.thunderTimeout = setTimeout(() => {
+            console.log("⛔ Thunder terminado");
 
-              console.log("⛔ Thunder terminado");
-
-              gameState.thunderActive = false;
-              bernice.speedMultiplier = 1;
-
-              thunderHUD.textContent = "0";
+            gameState.thunderActive = false;
+            bernice.speedMultiplier = 1;
+            thunderHUD.textContent = "0";
 
           }, 3000);
-      }
+        }
 
-        // ASTEROIDE → quita vida
+        // 💥 ASTEROIDE
         if (enemy.type === "asteroid") {
           gameState.esmeraldas--;
           esmeraldasHUD.textContent = gameState.esmeraldas;
 
-          console.log("💥 Colisión con ASTEROIDE. Esmeraldas:", gameState.esmeraldas);
-
           if (gameState.esmeraldas <= 0) {
-              bernice.isFrozen = true;
-              gameState.paused = true;   // 🔥 PAUSAR JUEGO
-              console.log("❌ Juego terminado.");
-              mostrarGameOver();
+            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+            bernice.isFrozen = true;
+            gameState.paused = true;
+            mostrarGameOver();
           }
-
         }
 
-        // DIAMANTE
+        // 💎 DIAMANTE
         if (enemy.type === "diamond") {
           gameState.diamantes++;
           diamondsHUD.textContent = gameState.diamantes;
-          console.log("💎 Recogiste un DIAMANTE:", gameState.diamantes);
         }
 
-        // ESMERALDA
+        // 🟩 ESMERALDA
         if (enemy.type === "emerald") {
           gameState.esmeraldas++;
           esmeraldasHUD.textContent = gameState.esmeraldas;
-          console.log("🟩 Recogiste una ESMERALDA:", gameState.esmeraldas);
         }
 
+        // 🚀 LLEGADA AL OVNI
         const ovniBBox = new THREE.Box3().setFromObject(ovni);
         if (berniceBBox.intersectsBox(ovniBBox)) {
-            console.log("🚀 ¡Llegaste al OVNI! GANASTE");
-            gameState.paused = true;   // 🔥 PAUSAR TODO
-            bernice.isFrozen = true;
 
-            mostrarWin();
-            return;  // Detiene la ejecución del frame actual
+          console.log("🚀 ¡Llegaste al OVNI! GANASTE");
+
+          gameState.paused = true;
+          bernice.isFrozen = true;
+
+          if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+
+          mostrarWin();
+          return;
         }
 
         removeEnemy(enemy);
@@ -296,20 +298,15 @@ export async function loadLevel3(scene) {
 
     });
 
-
-    // --- SPAWN DE ENEMIGOS ---
+    // ---- SPAWNEO ----
     if (frames % spawnRate === 0) {
-
       if (spawnRate > 30) spawnRate -= 10;
 
-      const randomModel = models[Math.floor(Math.random() * models.length)];
-
-      const enemy = cloneModel(randomModel);
+      const model = models[Math.floor(Math.random() * models.length)];
+      const enemy = cloneModel(model);
 
       const laneX = [-12, -6, 0, 6, 12];
-      const randomX = laneX[Math.floor(Math.random() * laneX.length)];
-
-      enemy.position.set(randomX, 1.2, -200);
+      enemy.position.set(laneX[Math.floor(Math.random() * laneX.length)], 1.2, -200);
 
       enemy.velocity = new THREE.Vector3(0, 0, 0.03);
       enemy.zAcceleration = true;
@@ -319,8 +316,7 @@ export async function loadLevel3(scene) {
       enemies.push(enemy);
     }
 
-
-    // --- MOVIMIENTO ---
+    // ---- MOVIMIENTO ----
     enemies.forEach(enemy => {
       if (enemy.zAcceleration) enemy.velocity.z += 0.0003;
       enemy.position.add(enemy.velocity);

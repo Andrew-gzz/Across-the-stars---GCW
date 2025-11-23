@@ -53,101 +53,107 @@ export function detenerTiempo() {
 window.restartGame = function () {
   console.log("Reiniciando juego...");
 
-  gameState.reset();                 // 🔥 REINICIA GEMAS GLOBALES
-  window.location.reload();          // 🔥 Reinicia la escena completa
+  gameState.reset();                 
+  window.location.reload();          
 };
 
 
 window.addEventListener('DOMContentLoaded', () => {
+
   const urlParams = new URLSearchParams(window.location.search);
   const level = parseInt(urlParams.get('level')) || 1;
-  new Main(level);
+
+  const modo = localStorage.getItem("modo"); 
+  const dificultad = localStorage.getItem("dificultad");
+
+  // OCULTAR EL TIEMPO SI ES FÁCIL
+  const tiempoHUD = document.getElementById("tiempo").parentElement;
+
+  if (dificultad === "facil") {
+      tiempoHUD.style.display = "none";
+  } else {
+      tiempoHUD.style.display = "inline-flex";
+  }
+
+
+  console.log("Modo:", modo);
+  console.log("Dificultad:", dificultad);
+  console.log("Nivel:", level);
+
+  new Main({ level, modo, dificultad });
 });
 
 
+
 class Main {
-  constructor(level = 1) {
-    this.level = level;
-    this._Initialize();
-  }
-
-  async _Initialize() {
-
-    // Contenedor
-    const container = document.querySelector('.game-area');
-    if (!container) throw new Error('No existe un elemento con la clase ".game-area"');
-
-    this.container = container;
-    this.scene = createScene();
-    this.camera = createCamera(container);
-    this.renderer = createRenderer(container);
-    this.loop = new Loop(this.camera, this.scene, this.renderer);
-
-    new Resizer(container, this.camera, this.renderer);
-
-    // HDRI + ambiente
-    createHDRI(this.scene, '/models/Level2/HDRi.jpg');
-    const { group: environment } = createEnvironment();
-    this.scene.add(environment);
-
-    // Physics
-    this.physics = createPhysics();
-
-    // -------------------------------------------
-    // 1) CARGAR NIVEL Y OBTENER BERNICE
-    // -------------------------------------------
-    console.log("Cargando nivel:", this.level);
-
-    let result = null;
-
-    switch (this.level) {
-      case 1:
-        result = await loadLevel1(this.scene, this.physics);
-        break;
-
-      case 2:
-        result = await loadLevel2(this.scene, this.physics);
-        break;
-
-      case 3:
-        result = await loadLevel3(this.scene, this.physics);
-        
-        break;
-
-      default:
-        result = await loadLevel1(this.scene, this.physics);
+    constructor({ level, modo, dificultad }) {
+        this.level = level;
+        this.modo = modo;
+        this.dificultad = dificultad;
+        this._Initialize();
     }
 
-    if (!result || !result.bernice) {
-      throw new Error("Error: el nivel no devolvió la Bernice.");
+    async _Initialize() {
+
+        const container = document.querySelector('.game-area');
+        if (!container) throw new Error('No existe el elemento ".game-area"');
+
+        this.container = container;
+        this.scene = createScene();
+        this.camera = createCamera(container);
+        this.renderer = createRenderer(container);
+        this.loop = new Loop(this.camera, this.scene, this.renderer);
+
+        new Resizer(container, this.camera, this.renderer);
+
+        // HDRI + ambiente
+        createHDRI(this.scene, '/models/Level2/HDRi.jpg');
+        const { group: environment } = createEnvironment();
+        this.scene.add(environment);
+
+        // Physics
+        this.physics = createPhysics();
+
+        // -------------------------------------------
+        // 1) CARGAR NIVEL
+        // -------------------------------------------
+        console.log("Cargando nivel:", this.level, "Dificultad:", this.dificultad);
+
+        let result = null;
+
+        switch (this.level) {
+          case 1: result = await loadLevel1(this.scene, this.physics, this.dificultad); break;
+          case 2: result = await loadLevel2(this.scene, this.physics, this.dificultad); break;
+          case 3: result = await loadLevel3(this.scene, this.physics, this.dificultad); break;
+        }
+
+        if (!result || !result.bernice) {
+          throw new Error("Error: el nivel no devolvió la Bernice.");
+        }
+
+        this.bernice = result.bernice;
+
+        // -------------------------------------------
+        // 2) CONTROLADOR + CÁMARA
+        // -------------------------------------------
+        this._characterController = new BasicCharacterController({
+          camera: this.camera,
+          scene: this.scene,
+          bernice: this.bernice,
+        });
+
+        this._thirdPersonCamera = new ThirdPersonCamera({
+          camera: this.camera,
+          target: this._characterController,
+        });
+
+        // -------------------------------------------
+        // 3) LOOP
+        // -------------------------------------------
+        this.loop.addSystem((dt) => this.physics.update(dt));
+        this.loop.addSystem((dt) => this._characterController.Update(dt));
+        this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+
+        this.loop.start();
     }
-
-    this.bernice = result.bernice;
-    console.log("Bernice cargada correctamente:", this.bernice);
-
-
-    // -------------------------------------------
-    // 2) CREAR CONTROLADOR Y CÁMARA
-    // -------------------------------------------
-    this._characterController = new BasicCharacterController({
-      camera: this.camera,
-      scene: this.scene,
-      bernice: this.bernice,   // ← AQUÍ SE PASA LA BERNICE CORRECTA
-    });
-
-    this._thirdPersonCamera = new ThirdPersonCamera({
-      camera: this.camera,
-      target: this._characterController,
-    });
-
-
-    // -------------------------------------------
-    // 3) SISTEMAS DEL LOOP
-    // -------------------------------------------
-    this.loop.addSystem((dt) => this.physics.update(dt));
-    this.loop.addSystem((dt) => this._characterController.Update(dt));
-    this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
-
-    this.loop.start();
-  }
 }

@@ -1,8 +1,34 @@
+import { gameState } from "./core/gameState.js";
+
 function togglePauseMenu() {
     const menu = document.getElementById("pause-menu");
-    // Alterna mostrar/ocultar
-    menu.style.display = menu.style.display === "block" ? "none" : "block";
+    const visible = menu.style.display === "block";
+
+    if (visible) {
+        // ──────────────── REANUDAR ────────────────
+        menu.style.display = "none";
+        gameState.paused = false;
+        gameState.freezeBernice = false;
+
+        // Reanudar tiempo SOLO si hay tiempo (dificultad difícil)
+        if (gameState.dificultad === "dificil") {
+            iniciarTimerOtraVez();
+        }
+
+    } else {
+        // ──────────────── PAUSAR IGUAL QUE GAME OVER ────────────────
+        menu.style.display = "block";
+        gameState.paused = true;
+        gameState.freezeBernice = true;
+
+        // Pausar tiempo
+        if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+    }
 }
+
+window.togglePauseMenu = togglePauseMenu;
+window.resumeGame = () => togglePauseMenu(); // usa lo mismo
+
 
 function resumeGame() {
     document.getElementById("pause-menu").style.display = "none";
