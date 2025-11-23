@@ -56,7 +56,7 @@ export async function loadLevel2(scene, physics) {
 
  // --- PISO ---
      const textureLoader = new THREE.TextureLoader();
-     const marsTexture = textureLoader.load('/Img/mars.jpg');
+     const marsTexture = textureLoader.load('/Img/pista2.png');
  
      // Para que la textura se repita a lo largo de la pista
      marsTexture.wrapS = THREE.RepeatWrapping;

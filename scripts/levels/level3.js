@@ -55,7 +55,7 @@ export async function loadLevel3(scene, physics) {
   scene.add(dirLight);
 // --- PISO ---
     const textureLoader = new THREE.TextureLoader();
-    const marsTexture = textureLoader.load('/Img/mars.jpg');
+    const marsTexture = textureLoader.load('/Img/pista4.png');
 
     // Para que la textura se repita a lo largo de la pista
     marsTexture.wrapS = THREE.RepeatWrapping;
@@ -91,10 +91,10 @@ export async function loadLevel3(scene, physics) {
   // --- OVNI ---
   const ovni = await loadModel('/models/ovni.glb');
   ovni.scale.setScalar(0.5);
-  ovni.position.set(0, -2, -95);
+  ovni.position.set(0, -2, -170);
   scene.add(ovni);
 
-  const ovniLight = new THREE.PointLight(0x33ffff, 6, 60);
+  const ovniLight = new THREE.PointLight(0x33ffff, 20, 200);
   ovniLight.position.set(0, -1, 0);
   ovniLight.castShadow = true;
   ovni.add(ovniLight);
@@ -122,7 +122,7 @@ export async function loadLevel3(scene, physics) {
   baseEsmeralda.scale.setScalar(2);
   baseEsmeralda.type = "emerald";
 
-  const baseThunder = await loadModel('/models/thunder2.glb');
+  const baseThunder = await loadModel('/models/thunder3.glb');
   baseThunder.scale.setScalar(1.5);
   baseThunder.type = "thunder";
 
@@ -229,6 +229,51 @@ export async function loadLevel3(scene, physics) {
     tiempoHUD.textContent = "--:--";
     gameState.timeInterval = null;
   }
+
+    function crearExplosion(scene, position) {
+    const particleCount = 20;
+    const particles = new THREE.Group();
+
+    for (let i = 0; i < particleCount; i++) {
+      const geom = new THREE.SphereGeometry(0.2, 6, 6);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xff5500,
+        emissive: 0xff2200,
+        transparent: true,
+        opacity: 0.9
+      });
+
+      const p = new THREE.Mesh(geom, mat);
+
+      p.position.copy(position);
+      p.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 1.5,
+        (Math.random() - 0.5) * 1.5,
+        (Math.random() - 0.5) * 1.5
+      );
+
+      particles.add(p);
+    }
+
+    scene.add(particles);
+
+    // Animación de partículas por 500ms
+    let alive = 0;
+    const explosionInterval = setInterval(() => {
+      alive += 16;
+
+      particles.children.forEach(p => {
+        p.position.add(p.velocity);
+        p.material.opacity -= 0.03;
+      });
+
+      if (alive > 500) {
+        scene.remove(particles);
+        clearInterval(explosionInterval);
+      }
+    }, 16);
+  }
+
   
   
 
@@ -251,8 +296,25 @@ export async function loadLevel3(scene, physics) {
 
     berniceBBox.setFromObject(bernice);
 
+    // ---- COLISIÓN CON EL OVNI ----
+    const ovniBBox = new THREE.Box3().setFromObject(ovni);
+
+    if (berniceBBox.intersectsBox(ovniBBox)) {
+        console.log("🚀 ¡Llegaste al OVNI! GANASTE");
+
+        gameState.paused = true;
+        bernice.isFrozen = true;
+
+        if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+
+        mostrarWin();
+        return;
+    }
+
+
     // ---- COLISIONES ----
     enemies.forEach(enemy => {
+      
 
       if (berniceBBox.intersectsBox(enemy.bbox)) {
 
@@ -292,15 +354,18 @@ export async function loadLevel3(scene, physics) {
 
         // 💥 ASTEROIDE
         if (enemy.type === "asteroid") {
-          gameState.esmeraldas--;
-          esmeraldasHUD.textContent = gameState.esmeraldas;
+            // 💥 Crear explosión
+            crearExplosion(scene, enemy.position.clone());
 
-          if (gameState.esmeraldas <= 0) {
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
-            bernice.isFrozen = true;
-            gameState.paused = true;
-            mostrarGameOver();
-          }
+            gameState.esmeraldas--;
+            esmeraldasHUD.textContent = gameState.esmeraldas;
+
+            if (gameState.esmeraldas <= 0) {
+              if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+              bernice.isFrozen = true;
+              gameState.paused = true;
+              mostrarGameOver();
+            }
         }
 
         // 💎 DIAMANTE
@@ -343,7 +408,7 @@ export async function loadLevel3(scene, physics) {
       const enemy = cloneModel(model);
 
       const laneX = [-12, -6, 0, 6, 12];
-      enemy.position.set(laneX[Math.floor(Math.random() * laneX.length)], 1.2, -200);
+      enemy.position.set(laneX[Math.floor(Math.random() * laneX.length)], 1.2, -160);
 
       enemy.velocity = new THREE.Vector3(0, 0, 0.03);
       enemy.zAcceleration = true;
@@ -353,15 +418,30 @@ export async function loadLevel3(scene, physics) {
       enemies.push(enemy);
     }
 
-    // ---- MOVIMIENTO ----
+   // ---- MOVIMIENTO + ANIMACIONES ----
     enemies.forEach(enemy => {
+
+      // --- ANIMACIONES POR TIPO ---
+      if (enemy.type === "emerald" || enemy.type === "diamond" ||enemy.type === "thunder") {
+        enemy.position.y += Math.sin(Date.now() * 0.003 + enemy.position.x) * 0.005;
+        enemy.rotation.y += 0.02;
+      }
+
+      
+      if (enemy.type === "asteroid") {
+        enemy.rotation.x += 0.05;
+        enemy.rotation.y += 0.03;
+        enemy.rotation.z += 0.02;
+      }
+
+      // --- MOVIMIENTO BASE ---
       if (enemy.zAcceleration) enemy.velocity.z += 0.0003;
       enemy.position.add(enemy.velocity);
       enemy.bbox.setFromObject(enemy);
     });
 
     frames++;
-  }
+    }
 
   window.startGameLoop = animate;
 
