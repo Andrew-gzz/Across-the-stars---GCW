@@ -13,6 +13,30 @@ export async function loadLevel3(scene, physics) {
 
   console.log("Dificultad:", dificultad, "Tiempo:", tiempoActivado);
 
+  // OBSERVADOR GLOBAL DEL PAUSE
+  setInterval(() => {
+      if (gameState.paused) {
+
+          // Pausar thunder
+          if (gameState.thunderInterval) {
+              clearInterval(gameState.thunderInterval);
+              gameState.thunderInterval = null;
+          }
+
+          if (gameState.thunderTimeout) {
+              clearTimeout(gameState.thunderTimeout);
+              gameState.thunderTimeout = null;
+          }
+
+          // Frenar completamente a Bernice
+          if (bernice) bernice.speedMultiplier = 0;
+
+          // Frenar enemigos
+          enemies.forEach(e => e.velocity.set(0, 0, 0));
+      }
+  }, 100);
+
+
   // --- HUD ---
   const esmeraldasHUD = document.getElementById("esmeraldas");
   const diamondsHUD = document.getElementById("diamantes");
@@ -193,7 +217,7 @@ export async function loadLevel3(scene, physics) {
     gameState.timeInterval = null;
   }
   
-
+  
 
   // -------------------------------------------------------
   // 🔥 LOOP PRINCIPAL
@@ -325,6 +349,8 @@ export async function loadLevel3(scene, physics) {
 
     frames++;
   }
+
+  window.startGameLoop = animate;
 
   animate();
 
