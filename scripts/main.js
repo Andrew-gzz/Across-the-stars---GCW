@@ -155,7 +155,7 @@ class Main {
 					break;
 
 				default:
-					console.warn("⚠️ Nivel no encontrado, cargando Level 1 por defecto");
+					console.warn("Nivel no encontrado, cargando Level 1 por defecto");
 					result = await loadLevel1(this.scene, this.physics, this.dificultad);
 			}
 		}
@@ -171,7 +171,7 @@ class Main {
 		this._characterController = new BasicCharacterController({
 			camera: this.camera,
 			scene: this.scene,
-			bernice: this.bernice,   // ← AQUÍ SE PASA LA BERNICE CORRECTA
+			bernice: this.bernice,
 		});
 
 		/*
