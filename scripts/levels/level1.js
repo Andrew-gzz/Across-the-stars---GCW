@@ -1,75 +1,132 @@
-    import * as THREE from 'three';
-    import * as CANNON from 'cannon-es';
-    import { loadModel } from '../core/assets.js';
-    import { createConvexShapeFromGeometry } from '../systems/physics.js';
+import * as THREE from 'three';
+import { loadModel } from '../core/assets.js';
+import { gameState } from '../core/gameState.js';
 
-    export async function loadLevel1(scene, physics) {
-    const light = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(light);
+export async function loadLevel1(scene, physics) {
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(50, 100, 50);
-    scene.add(dirLight);
+  gameState.paused = false;
 
-    const escenario = await loadModel('../models/Level1/escenario1.glb');
-    escenario.scale.set(300, 300, 300);
-    escenario.position.set(0, -115, 0);
-    scene.add(escenario);
+  const esmeraldasHUD = document.getElementById("esmeraldas");
+  const diamondsHUD = document.getElementById("diamantes");
+  esmeraldasHUD.textContent = gameState.esmeraldas;
+  diamondsHUD.textContent = gameState.diamantes;
 
-    escenario.traverse(child => {
-        if (child.isMesh && child.geometry) {
-        const shape = createConvexShapeFromGeometry(child.geometry);
-        if (shape) {
-            physics.add(child, shape, 0); // suelo estático
+  // --- LUCES ---
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dir = new THREE.DirectionalLight(0xffffff, 1);
+  dir.position.set(50, 100, 100);
+  scene.add(dir);
+
+  // --- PISO ---
+  const ground = new THREE.Mesh(
+    new THREE.BoxGeometry(40, 0.5, 120),
+    new THREE.MeshStandardMaterial({ color: '#4ade80' })
+  );
+  ground.position.set(0,-2,0);
+  scene.add(ground);
+
+  // --- PERSONAJE (BERNICE) ---
+  const bernice = await loadModel('/models/Bernice.fbx');
+  bernice.position.set(0,0,20);
+  bernice.scale.setScalar(0.06);
+  bernice.speedMultiplier = 1;
+  scene.add(bernice);
+
+  const berniceBBox = new THREE.Box3().setFromObject(bernice);
+
+  // --- OVNI ---
+  const ovni = await loadModel('/models/ovni.glb');
+  ovni.scale.setScalar(0.5);
+  ovni.position.set(0,-2,-60);
+  scene.add(ovni);
+  
+  let ovniTime = 0;
+
+  // --- OBJETOS (solo diamantes y esmeraldas, sin thunder) ---
+  const baseDiamante = await loadModel('/models/diamante.glb');
+  baseDiamante.scale.setScalar(1.5);
+  baseDiamante.type = "diamond";
+
+  const baseEsmeralda = await loadModel('/models/esmeralda.glb');
+  baseEsmeralda.scale.setScalar(1.5);
+  baseEsmeralda.type = "emerald";
+
+  const models = [baseDiamante, baseEsmeralda];
+
+  const enemies = [];
+  let frames = 0;
+  let spawnRate = 200;
+
+  function clone(model) {
+    const c = model.clone(true);
+    c.type = model.type;
+    c.traverse(o => {
+      if (o.isMesh) { o.castShadow=true; o.receiveShadow=true; }
+    });
+    return c;
+  }
+
+  // --- PAUSA GLOBAL ---
+  setInterval(() => {
+      if (gameState.paused) {
+          bernice.speedMultiplier = 0;
+          enemies.forEach(e => e.velocity.set(0,0,0));
+      }
+  }, 80);
+
+  // --- LOOP ---
+  function animate() {
+    if (gameState.paused) return;
+    requestAnimationFrame(animate);
+
+    // OVNI animación
+    ovniTime += 0.02;
+    ovni.position.y = -1 + Math.sin(ovniTime*2)*1.5;
+    ovni.rotation.y += 0.01;
+
+    berniceBBox.setFromObject(bernice);
+
+    // COLISIONES
+    enemies.forEach(enemy => {
+
+      if (berniceBBox.intersectsBox(enemy.bbox)) {
+
+        if (enemy.type === "diamond") {
+          gameState.diamantes++;
+          diamondsHUD.textContent = gameState.diamantes;
         }
+
+        if (enemy.type === "emerald") {
+          gameState.esmeraldas++;
+          esmeraldasHUD.textContent = gameState.esmeraldas;
         }
+
+        enemy.removeFromParent();
+      }
+
     });
 
-    const esmeralda = await loadModel('../models/Level1/diamante.glb');
-    esmeralda.scale.set(5, 5, 5);
-    esmeralda.position.set(10, 5, 0); // ajusta altura o posición en el mapa
-    esmeralda.rotation.x = Math.PI / 2; // gira -90 grados hacia abajo
-    scene.add(esmeralda);
-
-    esmeralda.traverse(child => {
-        if (child.isMesh && child.geometry) {
-        const shape = createConvexShapeFromGeometry(child.geometry);
-        if (shape) {
-            physics.add(child, shape, 0); // masa 0 = estático (no cae)
-        }
-        }
-    });
-
-    
-
-    const limitSize = 300;
-    const wallThickness = 5;
-    const wallHeight = 100;
-
-    const wallMaterial = new THREE.MeshStandardMaterial({
-        color: 0xff0000,
-        transparent: true,
-        opacity: 0,
-    });
-
-    const wallGeometry = new THREE.BoxGeometry(limitSize, wallHeight, wallThickness);
-    const positions = [
-        { x: 0, y: wallHeight / 2 - 5, z: limitSize / 2 },
-        { x: 0, y: wallHeight / 2 - 5, z: -limitSize / 2 },
-        { x: limitSize / 2, y: wallHeight / 2 - 5, z: 0 },
-        { x: -limitSize / 2, y: wallHeight / 2 - 5, z: 0 },
-    ];
-
-    for (const pos of positions) {
-        const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-        wall.position.set(pos.x, pos.y, pos.z);
-        scene.add(wall);
-
-        const wallShape = new CANNON.Box(
-        new CANNON.Vec3(limitSize / 2, wallHeight / 2, wallThickness / 2)
-        );
-        physics.add(wall, wallShape, 0);
+    // SPAWNEO
+    if (frames % spawnRate === 0) {
+      const model = models[Math.floor(Math.random()*models.length)];
+      const e = clone(model);
+      e.position.set([-10,0,10][Math.floor(Math.random()*3)],1.2,-120);
+      e.velocity = new THREE.Vector3(0,0,0.02);
+      e.bbox = new THREE.Box3().setFromObject(e);
+      enemies.push(e);
+      scene.add(e);
     }
 
-    console.log('✅ Nivel 1 cargado con escenario, esmeralda y límites invisibles');
-    }
+    // MOVIMIENTO
+    enemies.forEach(e => {
+      e.position.add(e.velocity);
+      e.bbox.setFromObject(e);
+    });
+
+    frames++;
+  }
+
+  animate();
+
+  return { bernice };
+}
