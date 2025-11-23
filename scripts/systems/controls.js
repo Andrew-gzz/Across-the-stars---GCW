@@ -114,15 +114,13 @@ export class BasicCharacterController {
     if (this._input._keys.backward)
       velocity.z -= acc.z * timeInSeconds;
 
+   // --- Movimiento lateral tipo runner ---
     if (this._input._keys.left) {
-      _A.set(0, 1, 0);
-      _Q.setFromAxisAngle(_A, 4.0 * Math.PI * timeInSeconds * acc.y);
-      _R.multiply(_Q);
+      controlObject.position.x -= 10 * timeInSeconds;
     }
+
     if (this._input._keys.right) {
-      _A.set(0, 1, 0);
-      _Q.setFromAxisAngle(_A, -4.0 * Math.PI * timeInSeconds * acc.y);
-      _R.multiply(_Q);
+      controlObject.position.x += 10 * timeInSeconds;
     }
 
     controlObject.quaternion.copy(_R);

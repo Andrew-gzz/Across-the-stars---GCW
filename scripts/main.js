@@ -9,7 +9,7 @@ import { loadLevel3 } from './levels/level3.js';
 // Core
 import { createRenderer } from './core/renderer.js';
 import { createScene } from './core/scene.js';
-import { createCamera, ThirdPersonCamera } from './core/camera.js';
+import { createCamera } from './core/camera.js';   // ✔ Se eliminó ThirdPersonCamera
 import { Loop } from './core/loop.js';
 import { Resizer } from './core/resizer.js';
 
@@ -23,6 +23,9 @@ import { gameState } from './core/gameState.js';
 
 let tiempoInterval = null;
 
+// -----------------------------------------------------
+// TIEMPO
+// -----------------------------------------------------
 export function iniciarTiempo() {
     const tiempoHUD = document.getElementById("tiempo");
     let segundos = 0;
@@ -33,7 +36,7 @@ export function iniciarTiempo() {
         if (gameState.paused) return;
 
         segundos++;
-        
+
         const min = String(Math.floor(segundos / 60)).padStart(2, "0");
         const sec = String(segundos % 60).padStart(2, "0");
 
@@ -50,41 +53,41 @@ export function detenerTiempo() {
     }
 }
 
+// -----------------------------------------------------
+// REINICIAR
+// -----------------------------------------------------
 window.restartGame = function () {
-  console.log("Reiniciando juego...");
+    console.log("Reiniciando juego...");
 
-  gameState.reset();                 
-  window.location.reload();          
+    gameState.reset();
+    window.location.reload();
 };
 
-
+// -----------------------------------------------------
+// INICIAR CUANDO CARGA EL DOM
+// -----------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const level = parseInt(urlParams.get('level')) || 1;
+    const urlParams = new URLSearchParams(window.location.search);
+    const level = parseInt(urlParams.get('level')) || 1;
 
-  const modo = localStorage.getItem("modo"); 
-  const dificultad = localStorage.getItem("dificultad");
+    const modo = localStorage.getItem("modo");
+    const dificultad = localStorage.getItem("dificultad");
 
-  // OCULTAR EL TIEMPO SI ES FÁCIL
-  const tiempoHUD = document.getElementById("tiempo").parentElement;
+    const tiempoHUD = document.getElementById("tiempo").parentElement;
 
-  if (dificultad === "facil") {
-      tiempoHUD.style.display = "none";
-  } else {
-      tiempoHUD.style.display = "inline-flex";
-  }
+    if (dificultad === "facil") {
+        tiempoHUD.style.display = "none";
+    } else {
+        tiempoHUD.style.display = "inline-flex";
+    }
 
-
-  console.log("Modo:", modo);
-  console.log("Dificultad:", dificultad);
-  console.log("Nivel:", level);
-
-  new Main({ level, modo, dificultad });
+    new Main({ level, modo, dificultad });
 });
 
-
-
+// -----------------------------------------------------
+// CLASE PRINCIPAL
+// -----------------------------------------------------
 class Main {
     constructor({ level, modo, dificultad }) {
         this.level = level;
@@ -100,7 +103,7 @@ class Main {
 
         this.container = container;
         this.scene = createScene();
-        this.camera = createCamera(container);
+        this.camera = createCamera(container); // ✔ Cámara fija
         this.renderer = createRenderer(container);
         this.loop = new Loop(this.camera, this.scene, this.renderer);
 
@@ -122,37 +125,37 @@ class Main {
         let result = null;
 
         switch (this.level) {
-          case 1: result = await loadLevel1(this.scene, this.physics, this.dificultad); break;
-          case 2: result = await loadLevel2(this.scene, this.physics, this.dificultad); break;
-          case 3: result = await loadLevel3(this.scene, this.physics, this.dificultad); break;
+            case 1: result = await loadLevel1(this.scene, this.physics, this.dificultad); break;
+            case 2: result = await loadLevel2(this.scene, this.physics, this.dificultad); break;
+            case 3: result = await loadLevel3(this.scene, this.physics, this.dificultad); break;
         }
 
         if (!result || !result.bernice) {
-          throw new Error("Error: el nivel no devolvió la Bernice.");
+            throw new Error("Error: el nivel no devolvió la Bernice.");
         }
 
         this.bernice = result.bernice;
 
         // -------------------------------------------
-        // 2) CONTROLADOR + CÁMARA
+        // 2) CONTROLADOR
         // -------------------------------------------
         this._characterController = new BasicCharacterController({
-          camera: this.camera,
-          scene: this.scene,
-          bernice: this.bernice,
+            camera: this.camera,
+            scene: this.scene,
+            bernice: this.bernice,
         });
 
-        this._thirdPersonCamera = new ThirdPersonCamera({
-          camera: this.camera,
-          target: this._characterController,
-        });
+        // ❌ Eliminado: ThirdPersonCamera
+        // this._thirdPersonCamera = new ThirdPersonCamera({ ... });
 
         // -------------------------------------------
         // 3) LOOP
         // -------------------------------------------
         this.loop.addSystem((dt) => this.physics.update(dt));
         this.loop.addSystem((dt) => this._characterController.Update(dt));
-        this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+
+        // ❌ Eliminado:
+        // this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
 
         this.loop.start();
     }

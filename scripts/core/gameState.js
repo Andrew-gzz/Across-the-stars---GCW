@@ -17,3 +17,4 @@ export const gameState = {
 
 // HACERLO GLOBAL
 window.gameState = gameState;
+
