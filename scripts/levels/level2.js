@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { loadModel } from '../core/assets.js';
 import { gameState } from '../core/gameState.js';
 import { input } from '../core/input.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 export async function loadLevel2(scene, physics) {
 
@@ -90,9 +91,256 @@ export async function loadLevel2(scene, physics) {
   const baseThunder = await loadModel('/models/thunder3.glb');
   baseThunder.scale.setScalar(1.5);
   baseThunder.type = "thunder";
+  //-----------------------------------------------------
+  // ::::::::::::::: ESCENARIO
+  //-----------------------------------------------------
+  const loaderGLTF = new GLTFLoader();
+  let rocketMixer = null;
 
+  const clock = new THREE.Clock(); // para actualizar animaciones
 
+  let mercuryOrbit = null;
+  let venusOrbit   = null;
+  let moonOrbit    = null;
 
+  const scenery = [];
+
+  function addScenery(obj, {
+    speedZ = 0,      // movimiento hacia el jugador
+    rotX = 0,
+    rotY = 0,
+    rotZ = 0
+  } = {}) {
+    obj.velocity = new THREE.Vector3(0, 0, speedZ);
+    obj.rotateSpeed = { x: rotX, y: rotY, z: rotZ };
+    scenery.push(obj);
+  }
+  // SATÉLITE → se mueve hacia el jugador (y puede rotar un poco si quieres)
+  const satelite = await loadModel('/models/Planets/Sattelite.glb');
+  satelite.scale.setScalar(0.5);
+  satelite.type = "satelite";
+
+  // Ojo: rotaciones en radianes, no en grados
+
+  satelite.rotateZ(-75);
+  satelite.rotateY(Math.PI);
+  satelite.position.set(40, -10, -180);
+  scene.add(satelite);
+
+  // Se moverá hacia el jugador y rotará un poquito en Y
+  addScenery(satelite, {
+    speedZ: 0.03,
+  });
+
+  // SUN → no se mueve, solo rota
+  const sun = await loadModel('/models/Planets/Sun.glb');
+  sun.scale.setScalar(0.25);
+  sun.type = "planet";
+  sun.position.set(-80, -40, -60);
+  scene.add(sun);
+
+  // Lo metemos al sistema pero sin velocidad, solo rotación
+  addScenery(sun, {
+    speedZ: 0,
+    rotY: 0.005      // roto suave en Y
+  });
+
+  const mercury = await loadModel('/models/Planets/Mercury.glb');
+  mercury.scale.setScalar(0.25);
+  mercury.type = "planet";
+  mercury.position.set(-70, -40, -60);
+  scene.add(mercury);
+
+  // Lo metemos al sistema pero sin velocidad, solo rotación
+  addScenery(mercury, {
+    speedZ: 0,
+    rotY: 0.005, 
+    rotZ: 0.02     // roto suave en Y
+  });
+
+  const venus = await loadModel('/models/Planets/Venus.glb');
+  venus.scale.setScalar(0.25);
+  venus.type = "planet";
+  venus.position.set(-60, -40, -60);
+  scene.add(venus);
+
+  // Lo metemos al sistema pero sin velocidad, solo rotación
+  addScenery(venus, {
+    speedZ: 0,
+    rotY: 0.005, 
+    rotZ: 0.02     // roto suave en Y
+  });
+  // EARTH → rota mientras se mueve hacia el jugador
+  const earth = await loadModel('/models/Planets/Earth.glb');
+  earth.scale.setScalar(1);
+  earth.type = "planet";
+  earth.position.set(40, -10, 10);
+  scene.add(earth);
+
+  addScenery(earth, {
+    speedZ: 0.025,   // un poco más lento que el satélite
+    rotY: 0.02       // gira más rápido
+  });
+
+  // ---- ÓRBITAS ALREDEDOR DEL SOL ----
+// Calculamos radio y ángulo inicial de Mercurio respecto al Sol
+  {
+    const dx = mercury.position.x - sun.position.x;
+    const dz = mercury.position.z - sun.position.z;
+    const radius = Math.hypot(dx, dz);
+    const angle  = Math.atan2(dz, dx);
+
+    mercuryOrbit = {
+      radius,
+      angle,
+      speed: 0.002,        // más pequeño → más lento
+      y: mercury.position.y
+    };
+  }
+
+  // Lo mismo para Venus
+  {
+    const dx = venus.position.x - sun.position.x;
+    const dz = venus.position.z - sun.position.z;
+    const radius = Math.hypot(dx, dz);
+    const angle  = Math.atan2(dz, dx);
+
+    venusOrbit = {
+      radius,
+      angle,
+      speed: 0.0012,      // un pelín más lento que Mercurio
+      y: venus.position.y
+    };
+  }
+
+// ---- ROCKET ANIMADO ----
+const gltfRocket = await loaderGLTF.loadAsync('/models/Level2/Rocket.glb');
+const rocket = gltfRocket.scene;
+
+rocket.scale.setScalar(0.025);
+rocket.type = "objeto";
+
+// rotateY usa RADIANES, no grados
+rocket.rotation.y = -Math.PI / 2;
+
+rocket.position.set(25, 0, -40);
+scene.add(rocket);
+crearHumo(scene, rocket.position.clone());
+// que se mueva hacia el jugador como parte del escenario
+addScenery(rocket, {
+  speedZ: 0.025
+});
+
+// 🎞 Mixer para animación
+if (gltfRocket.animations && gltfRocket.animations.length > 0) {
+  rocketMixer = new THREE.AnimationMixer(rocket);
+
+  const action = rocketMixer.clipAction(gltfRocket.animations[0]);
+  action.play();
+}
+
+      //:::::::Escenario: Asteroides
+  const asteroid = await loadModel('/models/Asteroides/Asteroide1.glb');
+  const asteroid1 = await loadModel('/models/Asteroides/Asteroide2.glb');
+  const asteroid2 = await loadModel('/models/Asteroides/Asteroide3.glb');
+  const asteroid3 = await loadModel('/models/Planets/Jupiter.glb');
+  const asteroid4 = await loadModel('/models/Asteroides/Asteroide5.glb');
+  const asteroid5 = await loadModel('/models/Asteroides/Asteroide6.glb');
+  const asteroid6 = await loadModel('/models/Planets/Marth.glb');
+  const asteroid7 = await loadModel('/models/Asteroides/Asteroide8.glb');
+  const asteroid8 = await loadModel('/models/Asteroides/Asteroide9.glb');
+  const asteroid9 = await loadModel('/models/Asteroides/Asteroide10.glb');
+  const voyager = await loadModel('/models/Level1/Voyager.glb');
+  const sus = await loadModel('/models/Level2/Among.glb');
+  
+  asteroid.scale.setScalar(1);
+  asteroid1.scale.setScalar(1);
+  asteroid2.scale.setScalar(1);
+  asteroid3.scale.setScalar(1);
+  asteroid4.scale.setScalar(1);
+  asteroid5.scale.setScalar(1);
+  asteroid6.scale.setScalar(1);
+  asteroid7.scale.setScalar(1);
+  asteroid8.scale.setScalar(1);
+  asteroid9.scale.setScalar(1);
+  voyager.scale.setScalar(1);
+  sus.scale.setScalar(0.5);
+
+  asteroid.position.set(28, -10, -170);
+  asteroid1.position.set(40, -10, -150);
+  asteroid2.position.set(30, -10, -130);
+  asteroid3.position.set(80, -10, -220);
+  asteroid4.position.set(50, -10, -90);
+  asteroid5.position.set(40, -10, -70);
+  asteroid6.position.set(30, -10, -30);
+  asteroid7.position.set(60, -10, -20);
+  asteroid8.position.set(75, -10, -180);
+  asteroid9.position.set(28, -10, -200);
+  voyager.position.set(-50, -10, -150);
+  sus.position.set(-50,-10,-100)
+
+  scene.add(asteroid);
+  scene.add(asteroid1);
+  scene.add(asteroid2);
+  scene.add(asteroid3);
+  scene.add(asteroid4);
+  scene.add(asteroid5);
+  scene.add(asteroid6);
+  scene.add(asteroid7);
+  scene.add(asteroid8);
+  scene.add(asteroid9);
+  scene.add(voyager);
+  scene.add(sus);
+
+  addScenery(asteroid, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+    addScenery(asteroid1, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+    addScenery(asteroid2, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+    addScenery(asteroid3, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+    addScenery(asteroid4, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+    addScenery(asteroid5, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+      addScenery(asteroid6, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+      addScenery(asteroid7, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+      addScenery(asteroid8, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+      addScenery(asteroid9, {
+    speedZ: 0.04,  
+    rotY: 0.02       
+  });
+    addScenery(voyager, {
+    speedZ: 0.020,  
+    rotY: 0.01       
+  });
+  addScenery(sus, {
+    speedZ: 0.03,  
+    rotX: 0.01,
+    rotY: 0.01       
+  });
   // ---- META FINAL ----
  async function spawnMeta() {
 
@@ -117,7 +365,30 @@ export async function loadLevel2(scene, physics) {
       meta.position.z + 1
     );
     scene.add(ovniFinal);
+    // ---- THE MOOON ----
+  
+    moon = await loadModel('/models/Planets/Saturn.glb');
+    moon.scale.setScalar(2.5);
+    moon.position.set(
+      meta.position.x,
+      meta.position.y - 3,
+      meta.position.z + -10
+    );
+    scene.add(moon);
+    
+    {
+      const dx = moon.position.x - meta.position.x;
+      const dz = moon.position.z - meta.position.z;
+      const radius = Math.hypot(dx, dz);
+      const angle  = Math.atan2(dz, dx);
 
+      moonOrbit = {
+        radius,
+        angle,
+        speed: 0.0001,                 // rotación muy lenta
+        yOffset: moon.position.y - meta.position.y
+      };
+    }
     // ✔ AHORA SÍ deben imprimirse
     console.log("✔ Modelo cargado: META", meta ? "OK" : "ERROR");
     console.log("✔ Modelo cargado: OVNI FINAL", ovniFinal ? "OK" : "ERROR");
@@ -141,7 +412,6 @@ export async function loadLevel2(scene, physics) {
       if (r < 0.85) return baseAsteroid;    // 30%
       return baseThunder;                   // 15%
   }
-
 
   function cloneModel(model) {
     const clone = model.clone(true);
@@ -251,7 +521,7 @@ export async function loadLevel2(scene, physics) {
     gameState.timeInterval = null;
   }
 
-  // ---- EXPLOSIÓN ----
+  // ---- PARTICULAS ----
   function crearExplosion(scene, position) {
     const particleCount = 20;
     const particles = new THREE.Group();
@@ -294,6 +564,247 @@ export async function loadLevel2(scene, physics) {
       }
     }, 16);
   }
+  function crearRayos(scene, position) {
+    const particleCount = 15;
+    const particles = new THREE.Group();
+
+    const textureLoader = new THREE.TextureLoader();
+    const thunderTexture = textureLoader.load('/Img/thunder.png');
+
+    for (let i = 0; i < particleCount; i++) {
+      const geom = new THREE.PlaneGeometry(1.2, 2); // rayo alargado
+      const mat = new THREE.MeshStandardMaterial({
+        map: thunderTexture,
+        emissive: 0x55aaff,
+        emissiveIntensity: 2,
+        transparent: true,
+        opacity: 1,
+        side: THREE.DoubleSide,
+        depthWrite: false // evita sombras raras
+      });
+
+      const p = new THREE.Mesh(geom, mat);
+
+      p.position.copy(position);
+
+      // Movimiento errático tipo electricidad
+      p.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.8,
+        (Math.random() - 0.5) * 0.8,
+        (Math.random() - 0.5) * 0.8
+      );
+
+      // Rotación aleatoria para variación
+      p.rotation.z = Math.random() * Math.PI;
+
+      particles.add(p);
+    }
+
+    scene.add(particles);
+
+    let alive = 0;
+    const interval = setInterval(() => {
+      alive += 16;
+
+      particles.children.forEach(p => {
+        p.position.add(p.velocity);
+        p.material.opacity -= 0.06;
+        p.rotation.z += 0.2; // chispa girando
+      });
+
+      if (alive > 1500) {
+        scene.remove(particles);
+        clearInterval(interval);
+      }
+    }, 16);
+  }
+  function crearHeals(scene, position) {
+    const particleCount = 20;
+    const particles = new THREE.Group();
+
+    const textureLoader = new THREE.TextureLoader();
+    const healTexture = textureLoader.load('/Img/Heals.png');
+
+    for (let i = 0; i < particleCount; i++) {
+      // Partículas más pequeñas, suaves y "mágicas"
+      const geom = new THREE.PlaneGeometry(1.5, 1.5);
+      const mat = new THREE.MeshStandardMaterial({
+        map: healTexture,
+        emissive: 0x00ff88,            // verde brillante
+        emissiveIntensity: 3,          // brillo mágico
+        transparent: true,
+        opacity: 1,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+
+      const p = new THREE.Mesh(geom, mat);
+
+      // Posición inicial
+      p.position.copy(position);
+      p.position.x += (Math.random() - 0.5) * 2; // dispersión horizontal
+      p.position.z += (Math.random() - 0.5) * 2;
+
+      // Movimiento vertical suave tipo healing
+      p.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.2, // suave dispersión lateral
+        Math.random() * 0.5 + 0.3,   // siempre sube
+        (Math.random() - 0.5) * 0.2
+      );
+
+      // Rotación suave
+      p.rotation.z = Math.random() * Math.PI;
+
+      particles.add(p);
+    }
+
+    scene.add(particles);
+
+    let alive = 0;
+    const interval = setInterval(() => {
+      alive += 16;
+
+      particles.children.forEach(p => {
+        p.position.add(p.velocity);
+
+        // Opacidad lenta para efecto duradero
+        p.material.opacity -= 0.008;
+
+        // Rotación suave, no como rayo
+        p.rotation.z += 0.01;
+
+        // Aumentar un poquito de tamaño para el glow
+        p.scale.multiplyScalar(1.005);
+      });
+
+      // Duración total: ~2 segundos
+      if (alive > 2000) {
+        scene.remove(particles);
+        clearInterval(interval);
+      }
+    }, 16);
+  }
+  function crearDiamantes(scene, position) {
+    const particleCount = 15;
+    const particles = new THREE.Group();
+
+    const textureLoader = new THREE.TextureLoader();
+    const thunderTexture = textureLoader.load('/Img/diamante.png');
+
+    for (let i = 0; i < particleCount; i++) {
+      const geom = new THREE.PlaneGeometry(1.2, 2); // rayo alargado
+      const mat = new THREE.MeshStandardMaterial({
+        map: thunderTexture,
+        emissive: 0x55aaff,
+        emissiveIntensity: 2,
+        transparent: true,
+        opacity: 1,
+        side: THREE.DoubleSide,
+        depthWrite: false // evita sombras raras
+      });
+
+      const p = new THREE.Mesh(geom, mat);
+
+      p.position.copy(position);
+
+      // Movimiento errático tipo electricidad
+      p.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.8,
+        (Math.random() - 0.5) * 0.8,
+        (Math.random() - 0.5) * 0.8
+      );
+
+      // Rotación aleatoria para variación
+      p.rotation.z = Math.random() * Math.PI;
+
+      particles.add(p);
+    }
+
+    scene.add(particles);
+
+    let alive = 0;
+    const interval = setInterval(() => {
+      alive += 16;
+
+      particles.children.forEach(p => {
+        p.position.add(p.velocity);
+        p.material.opacity -= 0.06;
+        p.rotation.z += 0.2; // chispa girando
+      });
+
+      if (alive > 1500) {
+        scene.remove(particles);
+        clearInterval(interval);
+      }
+    }, 16);
+  }
+  function crearHumo(scene, position) {
+  const particleCount = 18;
+  const particles = new THREE.Group();
+
+  const textureLoader = new THREE.TextureLoader();
+  const smokeTexture = textureLoader.load('/Img/Humo.png');
+
+  for (let i = 0; i < particleCount; i++) {
+    // humo redondito, no tan alargado
+    const geom = new THREE.PlaneGeometry(2.5, 2.5);
+    const mat = new THREE.MeshStandardMaterial({
+      map: smokeTexture,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      color: 0xffffff,
+      emissive: 0x111111,
+      emissiveIntensity: 0.3
+    });
+
+    const p = new THREE.Mesh(geom, mat);
+
+    // sale desde la posición del rocket
+    p.position.copy(position);
+    p.position.x += (Math.random() - 0.5) * 0.8;
+    p.position.z += (Math.random() - 0.5) * 0.8;
+
+    // se va hacia arriba, muy suave
+    p.velocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.05,
+      Math.random() * 0.2 + 0.1,
+      (Math.random() - 0.5) * 0.05
+    );
+
+    // un poco de rotación random
+    p.rotation.z = Math.random() * Math.PI;
+
+    particles.add(p);
+  }
+
+  scene.add(particles);
+
+  let alive = 0;
+  const interval = setInterval(() => {
+    alive += 16;
+
+    particles.children.forEach(p => {
+      p.position.add(p.velocity);
+
+      // que se vaya haciendo más tenue
+      p.material.opacity -= 0.01;
+
+      // humo se expande un poquito
+      p.scale.multiplyScalar(1.003);
+
+      // rotación súper leve
+      p.rotation.z += 0.005;
+    });
+
+    // ~2.5 segundos de duración
+    if (alive > 2500) {
+      scene.remove(particles);
+      clearInterval(interval);
+    }
+  }, 16);
+  }
 
   // -------------------------------------------------------
   // 🎮 MOVIMIENTO Y LÍMITES DE BERNICE
@@ -312,17 +823,28 @@ export async function loadLevel2(scene, physics) {
 
   let meta = null;
   let metaSpawned = false;
-
+  let moon = null;
   let ovniFinal = null;
   let ovniTime = 0;
 
   // distancia detrás de la meta
   let finalTargetOffset = -5; 
 
+  setInterval(() => {
+    if (!gameState.paused && rocket) {
+      crearHumo(scene, rocket.position.clone());
+    }
+  }, 400);
 
   function animate() {
-    if (gameState.paused) return;
     requestAnimationFrame(animate);
+    if (gameState.paused) return;
+    const delta = clock.getDelta();
+
+    // Actualizar la animación del cohete
+    if (rocketMixer) {
+      rocketMixer.update(delta);
+    }
 
     // ---- OVNI FINAL (si existe) ----
     if (ovniFinal && meta) {
@@ -344,16 +866,31 @@ export async function loadLevel2(scene, physics) {
 
 
     // ---- COLISIÓN CON META FINAL ----
-    if (meta) {
-        const metaBBox = new THREE.Box3().setFromObject(meta);
+    if (meta && !gameState.ended) {
+      const metaBBox = new THREE.Box3().setFromObject(meta);
 
-        if (berniceBBox.intersectsBox(metaBBox)) {
-            gameState.paused = true;
-            bernice.isFrozen = true;
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
-            mostrarWin();
-            return;
+      if (berniceBBox.intersectsBox(metaBBox)) {
+        // Marcamos fin de partida
+        gameState.ended = true;
+
+        // Animación de victoria
+        if (bernice.controller && bernice.controller.win) {
+          bernice.controller.win();
+          gameState.paused = true;
         }
+
+        // Que ya no la puedas mover
+        bernice.isFrozen = true;
+
+        // Esperamos 5s para mostrar el Win
+        setTimeout(() => {
+          gameState.paused = true;
+          if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+          mostrarWin();
+        }, 5000);
+
+        return;
+      }
     }
 
 
@@ -407,7 +944,7 @@ export async function loadLevel2(scene, physics) {
       if (berniceBBox.intersectsBox(enemy.bbox)) {
 
         if (enemy.type === "thunder") {
-
+          crearRayos(scene, enemy.position.clone());
           // 🔥 ACELERA TODO DURANTE EL POWER-UP
           globalSpeedMultiplier = 2.5;
           bernice.speedMultiplier = 2.5;
@@ -441,20 +978,39 @@ export async function loadLevel2(scene, physics) {
           gameState.esmeraldas--;
           esmeraldasHUD.textContent = gameState.esmeraldas;
 
-          if (gameState.esmeraldas <= 0) {
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+          if (bernice.controller && bernice.controller.takeDamage){
+            bernice.controller.takeDamage();
+          }
+          if (gameState.esmeraldas <= 0 && !gameState.ended) {
+            // Marcamos que el juego ya terminó para no volver a entrar
+            gameState.ended = true;
+
+            // Animación de derrota en el controller (si existe)
+            if (bernice.controller && bernice.controller.defeat) {
+              bernice.controller.defeat();
+              gameState.paused = true;
+            }
+
+            // Que ya no reciba input, pero dejamos correr la animación
             bernice.isFrozen = true;
-            gameState.paused = true;
-            mostrarGameOver();
+
+            // Después de 5 segundos ahora sí pausamos y mostramos Game Over
+            setTimeout(() => {
+              gameState.paused = true;
+              if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+              mostrarGameOver();
+            }, 3000);
           }
         }
 
         if (enemy.type === "diamond") {
+          crearDiamantes(scene, enemy.position.clone())
           gameState.diamantes++;
           diamondsHUD.textContent = gameState.diamantes;
         }
 
         if (enemy.type === "emerald") {
+          crearHeals(scene, enemy.position.clone())
           gameState.esmeraldas++;
           esmeraldasHUD.textContent = gameState.esmeraldas;
         }
@@ -470,14 +1026,13 @@ export async function loadLevel2(scene, physics) {
         // aceleramos spawn
         if (spawnRate > 30) spawnRate -= 10;
 
-        // 👉 Si ya generamos 50 objetos, solo spawnear META
+        //  Si ya generamos 50 objetos, solo spawnear META
       if (spawnCount >= MAX_SPAWN) {
 
           if (!metaSpawned) {
               spawnMeta();   // solo una vez
           }
 
-          // ❌ NO return
           // El juego sigue normalmente
       } else {
 
@@ -506,14 +1061,14 @@ export async function loadLevel2(scene, physics) {
 
     // ---- MOVIMIENTO DE OBJETOS ----
     enemies.forEach(enemy => {
-      
+
       if (enemy.type === "asteroid") {
-          // ⚡ Rotación más caótica
+          //  Rotación más caótica
           enemy.rotation.x += 0.015 * globalSpeedMultiplier;
           enemy.rotation.y += 0.01  * globalSpeedMultiplier;
           enemy.rotation.z += 0.02  * globalSpeedMultiplier;
 
-          // 🔥 “Tambaleo”
+          //  “Tambaleo”
           enemy.position.y += Math.sin(Date.now() * 0.005 + enemy.position.x) * 0.01;
           
       } else {
@@ -535,7 +1090,50 @@ export async function loadLevel2(scene, physics) {
     if (meta) {
       meta.position.addScaledVector(meta.velocity, globalSpeedMultiplier);
     }
+    // ---- MOVIMIENTO DE ESCENARIO (planetas, satélites, etc.) ----
+    for (let i = scenery.length - 1; i >= 0; i--) {
+      const obj = scenery[i];
 
+      // Movimiento hacia el jugador
+      if (obj.velocity) {
+        obj.position.addScaledVector(obj.velocity, globalSpeedMultiplier);
+      }
+
+      // Rotación
+      if (obj.rotateSpeed) {
+        obj.rotation.x += obj.rotateSpeed.x;
+        obj.rotation.y += obj.rotateSpeed.y;
+        obj.rotation.z += obj.rotateSpeed.z;
+      }
+
+      // Si ya pasó muy atrás del jugador, lo quitamos opcionalmente
+      if (obj.position.z > MAX_Z + 150) {
+        obj.removeFromParent();
+        scenery.splice(i, 1);
+      }
+    }
+        // ---- ÓRBITA DE MERCURIO Y VENUS ALREDEDOR DEL SOL ----
+    if (sun) {
+      if (mercuryOrbit) {
+        mercuryOrbit.angle += mercuryOrbit.speed;
+
+        mercury.position.set(
+          sun.position.x + Math.cos(mercuryOrbit.angle) * mercuryOrbit.radius,
+          mercuryOrbit.y,
+          sun.position.z + Math.sin(mercuryOrbit.angle) * mercuryOrbit.radius
+        );
+      }
+
+      if (venusOrbit) {
+        venusOrbit.angle += venusOrbit.speed;
+
+        venus.position.set(
+          sun.position.x + Math.cos(venusOrbit.angle) * venusOrbit.radius,
+          venusOrbit.y,
+          sun.position.z + Math.sin(venusOrbit.angle) * venusOrbit.radius
+        );
+      }
+    }
 
     frames++;
   }
