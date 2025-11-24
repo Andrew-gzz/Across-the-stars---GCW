@@ -11,7 +11,7 @@ import { loadLevelM } from './levels/levelM.js';
 // Core
 import { createRenderer } from './core/renderer.js';
 import { createScene } from './core/scene.js';
-import { createCamera, ThirdPersonCamera } from './core/camera.js';
+import { createCamera} from './core/camera.js';
 import { Loop } from './core/loop.js';
 import { Resizer } from './core/resizer.js';
 
@@ -184,7 +184,7 @@ class Main {
 		// LOOP
 		this.loop.addSystem((dt) => this.physics.update(dt));
 		this.loop.addSystem((dt) => this._characterController.Update(dt));
-		this.loop.addSystem((dt) => this._thirdPersonCamera.Update(dt));
+		//this.loop.addSystem((dt) => this._thirdPersonCamera.update(dt));
 
 		this.loop.start();
 		console.log("Loop de juego iniciado");
