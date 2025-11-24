@@ -753,8 +753,9 @@ export async function loadLevel1(scene, physics) {
 
 
   function animate() {
-    if (gameState.paused) return;
+  
     requestAnimationFrame(animate);
+    if (gameState.paused) return;
     // ---- OVNI FINAL (si existe) ----
     if (ovniFinal && meta) {
         ovniTime += 0.03;
@@ -775,17 +776,33 @@ export async function loadLevel1(scene, physics) {
 
 
     // ---- COLISIÓN CON META FINAL ----
-    if (meta) {
-        const metaBBox = new THREE.Box3().setFromObject(meta);
+    if (meta && !gameState.ended) {
+      const metaBBox = new THREE.Box3().setFromObject(meta);
 
-        if (berniceBBox.intersectsBox(metaBBox)) {
-            gameState.paused = true;
-            bernice.isFrozen = true;
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
-            mostrarWin();
-            return;
+      if (berniceBBox.intersectsBox(metaBBox)) {
+        // Marcamos fin de partida
+        gameState.ended = true;
+
+        // Animación de victoria
+        if (bernice.controller && bernice.controller.win) {
+          bernice.controller.win();
+          gameState.paused = true;
         }
+
+        // Que ya no la puedas mover
+        bernice.isFrozen = true;
+
+        // Esperamos 5s para mostrar el Win
+        setTimeout(() => {
+          gameState.paused = true;
+          if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+          mostrarWin();
+        }, 5000);
+
+        return;
+      }
     }
+
 
 
     // ---- COLISIÓN CON OVNI FINAL ----
@@ -872,13 +889,31 @@ export async function loadLevel1(scene, physics) {
           gameState.esmeraldas--;
           esmeraldasHUD.textContent = gameState.esmeraldas;
 
-          if (gameState.esmeraldas <= 0) {
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+          if (bernice.controller && bernice.controller.takeDamage){
+            bernice.controller.takeDamage();
+          }
+          if (gameState.esmeraldas <= 0 && !gameState.ended) {
+            // Marcamos que el juego ya terminó para no volver a entrar
+            gameState.ended = true;
+
+            // Animación de derrota en el controller (si existe)
+            if (bernice.controller && bernice.controller.defeat) {
+              bernice.controller.defeat();
+              gameState.paused = true;
+            }
+
+            // Que ya no reciba input, pero dejamos correr la animación
             bernice.isFrozen = true;
-            gameState.paused = true;
-            mostrarGameOver();
+
+            // Después de 5 segundos ahora sí pausamos y mostramos Game Over
+            setTimeout(() => {
+              gameState.paused = true;
+              if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+              mostrarGameOver();
+            }, 3000);
           }
         }
+
 
         if (enemy.type === "diamond") {
           crearDiamantes(scene, enemy.position.clone());

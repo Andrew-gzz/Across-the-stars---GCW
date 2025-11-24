@@ -173,7 +173,8 @@ class Main {
 			scene: this.scene,
 			bernice: this.bernice,
 		});
-
+		
+		this.bernice.controller = this._characterController;
 		/*
 		this._thirdPersonCamera = new ThirdPersonCamera({
 			camera: this.camera,
