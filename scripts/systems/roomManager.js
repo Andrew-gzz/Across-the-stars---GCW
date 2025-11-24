@@ -234,17 +234,25 @@ export class RoomManager {
     async updateObjects(objects) {
         if (!this.currentRoomId || !this.isHost) return;
 
+        // Si no hay objetos, eliminar el nodo en vez de enviar array vacío
+        if (objects.length === 0) {
+            await remove(ref(db, `rooms/${this.currentRoomId}/objects`));
+            return;
+        }
+
         // Convertir array de objetos a formato serializable
-        const serializedObjects = objects.map(obj => ({
-            id: obj.userData.id,
-            type: obj.type,
-            x: Math.round(obj.position.x * 100) / 100,
-            y: Math.round(obj.position.y * 100) / 100,
-            z: Math.round(obj.position.z * 100) / 100,
-            rotationX: Math.round(obj.rotation.x * 100) / 100,
-            rotationY: Math.round(obj.rotation.y * 100) / 100,
-            rotationZ: Math.round(obj.rotation.z * 100) / 100
-        }));
+        const serializedObjects = {};
+        objects.forEach(obj => {
+            serializedObjects[obj.userData.id] = {
+                type: obj.type,
+                x: Math.round(obj.position.x * 100) / 100,
+                y: Math.round(obj.position.y * 100) / 100,
+                z: Math.round(obj.position.z * 100) / 100,
+                rotationX: Math.round(obj.rotation.x * 100) / 100,
+                rotationY: Math.round(obj.rotation.y * 100) / 100,
+                rotationZ: Math.round(obj.rotation.z * 100) / 100
+            };
+        });
 
         await set(ref(db, `rooms/${this.currentRoomId}/objects`), serializedObjects);
     }

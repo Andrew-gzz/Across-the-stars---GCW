@@ -50,6 +50,7 @@ export async function loadLevelM(scene) {
     
     if (!roomSnapshot.exists()) {
         alert("❌ La sala no existe o fue eliminada");
+        console.error("Firebase no encontró la sala:", roomId);
         window.location.href = "lobby.html";
         return { bernice: null };
     }
@@ -57,9 +58,21 @@ export async function loadLevelM(scene) {
     const roomData = roomSnapshot.val();
     console.log("- Room Data:", roomData);
     
+    // ❌ PROBLEMA: Si roomData solo tiene {status: "playing"}, host será undefined
+    if (!roomData.host) {
+        console.error("❌ ERROR CRÍTICO: La sala no tiene campo 'host'");
+        console.error("Datos disponibles:", Object.keys(roomData));
+        alert("❌ Error: La sala está corrupta. Los datos se borraron.");
+        window.location.href = "lobby.html";
+        return { bernice: null };
+    }
+    
     roomManager.isHost = roomData.host === user.uid;
     const isHost = roomManager.isHost;
 
+    console.log("- Host ID:", roomData.host);
+    console.log("- Guest ID:", roomData.guest);
+    console.log("- My ID:", user.uid);
     console.log("- Is Host:", isHost);
 
     console.log("🎮 Modo COOPERATIVO");
@@ -310,29 +323,32 @@ export async function loadLevelM(scene) {
 
         // 📥 GUEST: Escuchar objetos del host
         roomManager.listenToObjects((objects) => {
+            if (!objects) return; // Si no hay objetos, salir
+
             const currentIds = new Set(Object.keys(enemies));
             const receivedIds = new Set();
 
-            objects.forEach(objData => {
-                receivedIds.add(objData.id);
+            // Firebase ahora devuelve objeto, no array
+            Object.entries(objects).forEach(([id, objData]) => {
+                receivedIds.add(id);
 
-                if (!enemies[objData.id]) {
+                if (!enemies[id]) {
                     // Crear nuevo objeto
                     const model = modelsByType[objData.type];
                     if (!model) return;
 
                     const enemy = cloneModel(model);
-                    enemy.userData.id = objData.id;
+                    enemy.userData.id = id;
                     enemy.type = objData.type;
                     enemy.position.set(objData.x, objData.y, objData.z);
                     enemy.rotation.set(objData.rotationX, objData.rotationY, objData.rotationZ);
                     enemy.bbox = new THREE.Box3().setFromObject(enemy);
 
                     scene.add(enemy);
-                    enemies[objData.id] = enemy;
+                    enemies[id] = enemy;
                 } else {
                     // Actualizar posición existente
-                    const enemy = enemies[objData.id];
+                    const enemy = enemies[id];
                     enemy.position.lerp(new THREE.Vector3(objData.x, objData.y, objData.z), 0.3);
                     enemy.rotation.set(objData.rotationX, objData.rotationY, objData.rotationZ);
                     enemy.bbox.setFromObject(enemy);
@@ -356,6 +372,13 @@ export async function loadLevelM(scene) {
             const targetPos = new THREE.Vector3(remote.x, ghostPlayer.position.y, remote.z);
             ghostPlayer.position.lerp(targetPos, 0.3);
             ghostPlayer.rotation.y = Math.PI;
+
+            // 🎭 Sincronizar animación (si tienes mixer)
+            // TODO: Si cargas animaciones en ghostPlayer, usar:
+            // if (ghostMixer && remote.animation) {
+            //     const action = ghostMixer.clipAction(animaciones[remote.animation]);
+            //     action.play();
+            // }
         }
     });
 
@@ -386,6 +409,7 @@ export async function loadLevelM(scene) {
 
             if (collision.objectType === "asteroid") {
                 gameState.esmeraldas--;
+                esmeraldasHUD.textContent = gameState.esmeraldas;  // ← Actualizar HUD
                 if (gameState.esmeraldas <= 0) {
                     gameState.paused = true;
                     bernice.isFrozen = true;
@@ -396,10 +420,12 @@ export async function loadLevelM(scene) {
 
             if (collision.objectType === "diamond") {
                 gameState.diamantes++;
+                diamondsHUD.textContent = gameState.diamantes;  // ← Actualizar HUD
             }
 
             if (collision.objectType === "emerald") {
                 gameState.esmeraldas++;
+                esmeraldasHUD.textContent = gameState.esmeraldas;  // ← Actualizar HUD
             }
 
             // Eliminar objeto
@@ -578,6 +604,7 @@ export async function loadLevelM(scene) {
 
                     if (enemy.type === "asteroid") {
                         gameState.esmeraldas--;
+                        esmeraldasHUD.textContent = gameState.esmeraldas;  // ← Actualizar HUD
                         console.log(`💀 Asteroide golpeado. Vida: ${gameState.esmeraldas}`);
                         if (gameState.esmeraldas <= 0) {
                             gameState.paused = true;
@@ -589,11 +616,13 @@ export async function loadLevelM(scene) {
 
                     if (enemy.type === "diamond") {
                         gameState.diamantes++;
+                        diamondsHUD.textContent = gameState.diamantes;  // ← Actualizar HUD
                         console.log(`💎 Diamante recogido. Total: ${gameState.diamantes}`);
                     }
 
                     if (enemy.type === "emerald") {
                         gameState.esmeraldas++;
+                        esmeraldasHUD.textContent = gameState.esmeraldas;  // ← Actualizar HUD
                         console.log(`💚 Esmeralda recogida. Vida: ${gameState.esmeraldas}`);
                     }
 
@@ -603,8 +632,8 @@ export async function loadLevelM(scene) {
                 }
             });
 
-            // 📤 Enviar estado cada frame
-            if (frames % 2 === 0) {
+            // 📤 Enviar estado cada 6 frames (100ms aprox, 10 FPS)
+            if (frames % 6 === 0) {
                 roomManager.updateGameState({
                     esmeraldas: gameState.esmeraldas,
                     diamantes: gameState.diamantes,
@@ -614,9 +643,10 @@ export async function loadLevelM(scene) {
                     spawnCount,
                     metaSpawned,
                     frames
-                });
+                }).catch(err => console.error("Error actualizando gameState:", err));
 
-                roomManager.updateObjects(Object.values(enemies));
+                roomManager.updateObjects(Object.values(enemies))
+                    .catch(err => console.error("Error actualizando objects:", err));
             }
         }
 
