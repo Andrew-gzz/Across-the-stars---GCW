@@ -55,6 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
       bgMusic.src = 'sound/Sound1.mp3'; // default
     }
 
+    window.bgMusic = bgMusic;
+
     // 🔊 Volumen
     const savedVolume = localStorage.getItem('musicVolume');
     if (savedVolume !== null) {
@@ -67,7 +69,6 @@ document.addEventListener('DOMContentLoaded', () => {
     bgMusic.play().catch(() => {});
   }
 
-  // ⬇️ configurar UI de opciones si existe en esta página
   initOptionsUI(bgMusic);
 });
 

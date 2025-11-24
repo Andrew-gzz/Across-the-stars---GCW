@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { loadModel } from '../core/assets.js';
 import { gameState } from '../core/gameState.js';
 import { input } from '../core/input.js';
+import { playExplosion, playCoin, playSpeed, playHealing, playWin } from '../systems/sfx.js';
 
 export async function loadLevel1(scene, physics) {
 
@@ -785,6 +786,7 @@ export async function loadLevel1(scene, physics) {
 
         // Animación de victoria
         if (bernice.controller && bernice.controller.win) {
+          playWin();
           bernice.controller.win();
           gameState.paused = true;
         }
@@ -856,7 +858,8 @@ export async function loadLevel1(scene, physics) {
 
         if (enemy.type === "thunder") {
           crearRayos(scene, enemy.position.clone());
-          // 🔥 ACELERA TODO DURANTE EL POWER-UP
+          playSpeed();
+
           globalSpeedMultiplier = 2.5;
           bernice.speedMultiplier = 2.5;
 
@@ -885,7 +888,7 @@ export async function loadLevel1(scene, physics) {
 
         if (enemy.type === "asteroid") {
           crearExplosion(scene, enemy.position.clone());
-
+          playExplosion();
           gameState.esmeraldas--;
           esmeraldasHUD.textContent = gameState.esmeraldas;
 
@@ -917,12 +920,14 @@ export async function loadLevel1(scene, physics) {
 
         if (enemy.type === "diamond") {
           crearDiamantes(scene, enemy.position.clone());
+          playCoin();
           gameState.diamantes++;
           diamondsHUD.textContent = gameState.diamantes;
         }
 
         if (enemy.type === "emerald") {
           crearHeals(scene, enemy.position.clone());
+          playHealing();
           gameState.esmeraldas++;
           esmeraldasHUD.textContent = gameState.esmeraldas;
         }
