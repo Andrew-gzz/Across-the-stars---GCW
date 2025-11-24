@@ -143,6 +143,28 @@
     background: rgb(24, 87, 169);
 }
 
+.btnGoogle {
+    font-family: 'Secular One', sans-serif;
+    font-size: 20px;
+    font-style: normal;
+    text-align: center;
+    display: inline-block;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background-color: #0F9D58;
+    color: rgb(255, 255, 255);
+    border: 0px;
+    font-weight: bold;
+    width: 200px;
+    text-decoration: none;
+}
+
+.btnGoogle:hover {
+    background: #086734;
+}
+
 .btnOp {
     display: flex;
     /* Usamos flex */

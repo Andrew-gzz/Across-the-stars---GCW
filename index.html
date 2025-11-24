@@ -29,8 +29,8 @@
         <a href="modoJ.html" class="btn">Jugar</a>
         <a href="opciones.html" class="btn">Opciones</a>
         <a href="puntuaciones.html" class="btn">Puntuaciones</a>
-        <a href="facebook.html" class="btnFacebook">Facebook</a>
-        <button id="btn-google" class="btn">Google</button>
+        <button id="btn-google" class="btnGoogle">Google</button>
+        <a href="facebook.html" class="btnFacebook">Facebook</a>    
     </div>
 
     <script type="module">
@@ -80,10 +80,8 @@
             } else {
                 // Usuario NO logueado
                 console.log("No hay usuario activo");
-
                 btnGoogle.textContent = "Google";
                 btnGoogle.style.background = "";
-
                 userProfile.style.display = "none";
             }
         });
