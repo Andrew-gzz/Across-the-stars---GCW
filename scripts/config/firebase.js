@@ -1,7 +1,24 @@
 // scripts/config/firebase.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
-import { getDatabase, ref, set, onValue, get, remove, onDisconnect, update } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
+import {
+    getAuth,
+    signInWithPopup,
+    GoogleAuthProvider,
+    signOut,
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { 
+    getDatabase, 
+    ref,
+    set,
+    onValue,
+    get,
+    remove,
+    onDisconnect,
+    update 
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCv9ozuErOZvKwBXPaCfpqvPUpUeHu21BA",
@@ -13,35 +30,39 @@ const firebaseConfig = {
     appId: "1:558057367472:web:68896f5c2b88b33cadd875"
 };
 
-// Inicializar Firebase UNA SOLA VEZ
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 const provider = new GoogleAuthProvider();
 
-// Exportar todo lo necesario
-export { 
-    auth, 
-    db, 
-    provider, 
-    signInWithPopup, 
-    signOut, 
-    onAuthStateChanged, 
-    ref, 
-    set, 
-    onValue, 
-    get, 
-    remove, 
+setPersistence(auth, browserLocalPersistence)
+    .then(() => {
+        console.log("✅ Persistencia de sesión configurada");
+    })
+    .catch((error) => {
+        console.error("❌ Error al configurar persistencia:", error);
+    });
+
+export {
+    auth,
+    db,
+    provider,
+    signInWithPopup,
+    signOut,
+    onAuthStateChanged,
+    ref,
+    set,
+    onValue,
+    get,
+    remove,
     onDisconnect,
     update
 };
 
-// Verificar si el usuario está logueado
 export function getCurrentUser() {
     return auth.currentUser;
 }
 
-// Esperar a que Firebase cargue el estado de auth
 export function waitForAuth() {
     return new Promise((resolve) => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {

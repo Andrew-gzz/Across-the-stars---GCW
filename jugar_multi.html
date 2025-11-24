@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,47 +13,47 @@
 </head>
 <style>
     .game-area {
-  position: relative;
-  width: 80vw;
-  height: 80vh;
-  overflow: hidden;
-}
-
+        position: relative;
+        width: 80vw;
+        height: 80vh;
+        overflow: hidden;
+    }
 </style>
 
-<body style="background-image: url('Img/BG4.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
-    <audio id="bg-music" src="sound/Radio_Portal.mp3" loop autoplay controls></audio> 
+<body
+    style="background-image: url('Img/BG4.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
+    <audio id="bg-music" src="sound/Radio_Portal.mp3" loop autoplay controls></audio>
     <!-- Área de juego -->
     <div class="game-area"></div>
-    
+
     <!-- HUD / Menú inferior -->
-   <div class="hud">
+    <div class="hud">
 
-     <!-- NUEVOS CONTADORES -->
+        <!-- NUEVOS CONTADORES -->
 
-        <div class="hud-item">
-            <img src="img/esmeralda.png" alt="Esmeraldas" class="hud-icon">
-            Vida: <span id="esmeraldas"></span>
+        <div class="hud">
+            <div class="hud-item">
+                <img src="img/esmeralda.png" alt="Vida" class="hud-icon">
+                Vida: <span id="vida">10</span>
+            </div>
+
+            <div class="hud-item">
+                <img src="img/diamante.png" alt="Potenciador" class="hud-icon">
+                Thunder: <span id="poteciador">0</span>
+            </div>
+
+            <div class="hud-item">
+                <img src="img/clock.png" alt="Reloj" class="hud-icon">
+                Tiempo: <span id="tiempo">00:00</span>
+            </div>
+
+            <div class="hud-item">
+                <img src="img/puntu.webp" alt="Puntuacion" class="hud-icon">
+                Puntuación: <span id="score">0</span>
+            </div>
+
+            <button class="pause-btn" onclick="togglePauseMenu()">⏸️ Pausa</button>
         </div>
-
-        <div class="hud-item">
-            <img src="img/diamante.png" alt="Diamantes" class="hud-icon">
-            <span id="diamantes"></span>
-        </div>
-
-         <div class="hud-item">
-            <img src="img/thunder.png" alt="thunder" class="hud-icon">
-            <span id="poteciador">0</span>
-        </div>
-
-        <div class="hud-item">
-            <img src="img/clock.png" alt="Reloj" class="hud-icon">
-            Tiempo: <span id="tiempo">00:00</span>
-        </div>
-
-       
-
-        <button class="pause-btn" onclick="togglePauseMenu()">⏸️ Pausa</button>
     </div>
 
 
@@ -63,7 +64,8 @@
         <button onclick="exitGame()">Salir</button>
         <button onclick="options()">Opciones</button>
     </div>
-    <script type= "module" src="scripts/main.js"></script>
+    <script type="module" src="scripts/main.js"></script>
     <script src="scripts/menu.js"></script>
 </body>
+
 </html>

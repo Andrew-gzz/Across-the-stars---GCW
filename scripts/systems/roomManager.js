@@ -166,9 +166,11 @@ export class RoomManager {
         if (playerList.length === 2 && playerList.every(p => p.ready)) {
             console.log("🎮 ¡Ambos jugadores listos!");
             
+            // ✅ Usar update() en vez de set() para NO borrar otros datos
             await update(ref(db, `rooms/${this.currentRoomId}`), { status: "ready" });
             
             setTimeout(async () => {
+                // ✅ Usar update() aquí también
                 await update(ref(db, `rooms/${this.currentRoomId}`), { status: "playing" });
             }, 3000);
         }
@@ -208,6 +210,92 @@ export class RoomManager {
             z: Math.round(z * 100) / 100,
             animation: animation,
             timestamp: Date.now()
+        });
+    }
+
+    // 🔹 Actualizar estado del juego (SOLO HOST)
+    async updateGameState(gameData) {
+        if (!this.currentRoomId || !this.isHost) return;
+
+        await update(ref(db, `rooms/${this.currentRoomId}/gameState`), {
+            esmeraldas: gameData.esmeraldas,
+            diamantes: gameData.diamantes,
+            thunderActive: gameData.thunderActive,
+            thunderTime: gameData.thunderTime,
+            globalSpeedMultiplier: gameData.globalSpeedMultiplier,
+            spawnCount: gameData.spawnCount,
+            metaSpawned: gameData.metaSpawned,
+            frames: gameData.frames,
+            timestamp: Date.now()
+        });
+    }
+
+    // 🔹 Actualizar lista de objetos (SOLO HOST)
+    async updateObjects(objects) {
+        if (!this.currentRoomId || !this.isHost) return;
+
+        // Convertir array de objetos a formato serializable
+        const serializedObjects = objects.map(obj => ({
+            id: obj.userData.id,
+            type: obj.type,
+            x: Math.round(obj.position.x * 100) / 100,
+            y: Math.round(obj.position.y * 100) / 100,
+            z: Math.round(obj.position.z * 100) / 100,
+            rotationX: Math.round(obj.rotation.x * 100) / 100,
+            rotationY: Math.round(obj.rotation.y * 100) / 100,
+            rotationZ: Math.round(obj.rotation.z * 100) / 100
+        }));
+
+        await set(ref(db, `rooms/${this.currentRoomId}/objects`), serializedObjects);
+    }
+
+    // 🔹 Escuchar estado del juego (GUEST)
+    listenToGameState(callback) {
+        if (!this.currentRoomId) return;
+
+        const gameStateRef = ref(db, `rooms/${this.currentRoomId}/gameState`);
+        onValue(gameStateRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) callback(data);
+        });
+    }
+
+    // 🔹 Escuchar objetos (GUEST)
+    listenToObjects(callback) {
+        if (!this.currentRoomId) return;
+
+        const objectsRef = ref(db, `rooms/${this.currentRoomId}/objects`);
+        onValue(objectsRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) callback(data);
+        });
+    }
+
+    // 🔹 Notificar colisión (GUEST → HOST)
+    async notifyCollision(objectId, objectType) {
+        if (!this.currentRoomId || !this.currentUserId) return;
+
+        await set(ref(db, `rooms/${this.currentRoomId}/collisions/${this.currentUserId}`), {
+            objectId: objectId,
+            objectType: objectType,
+            timestamp: Date.now()
+        });
+    }
+
+    // 🔹 Escuchar colisiones de otros jugadores (HOST)
+    listenToCollisions(callback) {
+        if (!this.currentRoomId) return;
+
+        const collisionsRef = ref(db, `rooms/${this.currentRoomId}/collisions`);
+        onValue(collisionsRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                Object.entries(data).forEach(([userId, collision]) => {
+                    if (userId !== this.currentUserId) {
+                        callback(collision);
+                    }
+                });
+            }
         });
     }
 
