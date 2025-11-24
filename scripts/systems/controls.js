@@ -25,7 +25,7 @@ export class BasicCharacterController {
     this._target = this._params.bernice;
 
     this._decceleration = new THREE.Vector3(-0.0005, -0.0001, -5.0);
-    this._acceleration = new THREE.Vector3(1, 0.25, 50.0);
+    this._acceleration = new THREE.Vector3(1, 0.25, 20.0);
     this._velocity = new THREE.Vector3(0, 0, 0);
     this._position = new THREE.Vector3();
 
@@ -45,7 +45,7 @@ export class BasicCharacterController {
 
     this._manager = new THREE.LoadingManager();
     this._manager.onLoad = () => {
-      this._stateMachine.SetState('idle');
+      this._stateMachine.SetState('walk');
     };
 
     const _OnLoad = (animName, anim) => {
@@ -61,82 +61,117 @@ export class BasicCharacterController {
     loader.load('run.fbx', (a) => _OnLoad('run', a));
     loader.load('idle.fbx', (a) => _OnLoad('idle', a));
     loader.load('dance.fbx', (a) => _OnLoad('dance', a));
+	loader.load('stumble.fbx', (a) => _OnLoad('stumble', a));
+	loader.load('defeat.fbx', (a) => _OnLoad('defeat', a));
+	loader.load('victory.fbx', (a) => _OnLoad('victory', a));
   }
 
   get Position() { return this._position; }
   get Rotation() { return this._target.quaternion; }
 
   // ======= UPDATE GENERAL =======
-  Update(timeInSeconds) {
+	Update(timeInSeconds) {
+		if (!this._target || !this._stateMachine) {
+		return;
+		}
 
-    if (this._target.isFrozen) {
-      // bloquear movimiento
-      Object.keys(this._input._keys).forEach(k => this._input._keys[k] = false);
-      this._velocity.set(0, 0, 0);
+		// Si está congelada: sin input y sin movimiento,
+		// pero NO hacemos return; dejamos que la animación se actualice.
+		if (this._target.isFrozen) {
+		Object.keys(this._input._keys).forEach(k => this._input._keys[k] = false);
+		this._velocity.set(0, 0, 0);
+		// OJO: ya no hacemos SetState('walk') aquí
+		}
 
-      if (this._stateMachine)
-        this._stateMachine.SetState('idle');
+		if (!this._stateMachine._currentState) {
+		return;
+		}
 
-      return;
-    }
+		// Actualizar la lógica de animaciones (FSM)
+		this._stateMachine.Update(timeInSeconds, this._input);
 
-    if (!this._stateMachine._currentState) {
-      return;
-    }
+		// Actualizar el mixer de animación SIEMPRE,
+		// esté frozen o no, para que defeat/win se vea completa
+		if (this._mixer) {
+		this._mixer.update(timeInSeconds);
+		}
 
-    this._stateMachine.Update(timeInSeconds, this._input);
+		// Si está frozen, hasta aquí llegamos: no hay movimiento físico
+		if (this._target.isFrozen) {
+		this._position.copy(this._target.position);
+		return;
+		}
 
-    const velocity = this._velocity;
-    const frameDecceleration = new THREE.Vector3(
-      velocity.x * this._decceleration.x,
-      velocity.y * this._decceleration.y,
-      velocity.z * this._decceleration.z
-    );
+		// ---- A partir de aquí es el movimiento normal ----
 
-    frameDecceleration.multiplyScalar(timeInSeconds);
-    frameDecceleration.z = Math.sign(frameDecceleration.z) *
-      Math.min(Math.abs(frameDecceleration.z), Math.abs(velocity.z));
+		const velocity = this._velocity;
+		const frameDecceleration = new THREE.Vector3(
+		velocity.x * this._decceleration.x,
+		velocity.y * this._decceleration.y,
+		velocity.z * this._decceleration.z
+		);
 
-    velocity.add(frameDecceleration);
+		frameDecceleration.multiplyScalar(timeInSeconds);
+		frameDecceleration.z = Math.sign(frameDecceleration.z) *
+		Math.min(Math.abs(frameDecceleration.z), Math.abs(velocity.z));
 
-    const controlObject = this._target;
-    const _Q = new THREE.Quaternion();
-    const _A = new THREE.Vector3();
-    const _R = controlObject.quaternion.clone();
+		velocity.add(frameDecceleration);
 
-    const acc = this._acceleration.clone();
-    if (this._input._keys.shift)
-      acc.multiplyScalar(5.0);
+		const controlObject = this._target;
+		const _Q = new THREE.Quaternion();
+		const _A = new THREE.Vector3();
+		const _R = controlObject.quaternion.clone();
 
-    // ---- Movimiento ----
-    if (this._input._keys.forward)
-      velocity.z += acc.z * timeInSeconds;
-    if (this._input._keys.backward)
-      velocity.z -= acc.z * timeInSeconds;
+		const acc = this._acceleration.clone();
+		if (this._input._keys.shift) {
+		acc.multiplyScalar(5.0);
+		}
 
-   // --- Movimiento lateral tipo runner ---
-    if (this._input._keys.left) {
-      controlObject.position.x -= 10 * timeInSeconds;
-    }
+		// ---- Movimiento ----
+		if (this._input._keys.forward) {
+		velocity.z += acc.z * timeInSeconds;
+		}
+		if (this._input._keys.backward) {
+		velocity.z -= acc.z * timeInSeconds;
+		}
 
-    if (this._input._keys.right) {
-      controlObject.position.x += 10 * timeInSeconds;
-    }
+		// --- Movimiento lateral tipo runner ---
+		if (this._input._keys.left) {
+		controlObject.position.x -= 10 * timeInSeconds;
+		}
 
-    controlObject.quaternion.copy(_R);
+		if (this._input._keys.right) {
+		controlObject.position.x += 10 * timeInSeconds;
+		}
 
-    // ---- Calcular desplazamiento ----
-    const forward = new THREE.Vector3(0, 0, 1);
-    forward.applyQuaternion(controlObject.quaternion).normalize();
-    forward.multiplyScalar(velocity.z * timeInSeconds);
+		controlObject.quaternion.copy(_R);
 
-    controlObject.position.add(forward);
+		// ---- Calcular desplazamiento ----
+		const forward = new THREE.Vector3(0, 0, 1);
+		forward.applyQuaternion(controlObject.quaternion).normalize();
+		forward.multiplyScalar(velocity.z * timeInSeconds);
 
-    this._position.copy(controlObject.position);
+		controlObject.position.add(forward);
 
-    if (this._mixer)
-      this._mixer.update(timeInSeconds);
-  }
+		this._position.copy(controlObject.position);
+	}
+
+
+ takeDamage() {
+	if (this._stateMachine) {
+		this._stateMachine.SetState('stumble');
+	}
+ }
+ defeat() {
+	if (this._stateMachine) {
+		this._stateMachine.SetState('defeat');
+	}
+ }
+  win() {
+	if (this._stateMachine) {
+		this._stateMachine.SetState('victory');
+	}
+ }
 }
 
 // ======= INPUT KEYS =======
@@ -221,6 +256,9 @@ class CharacterFSM extends FiniteStateMachine {
 		this._AddState('walk', WalkState);
 		this._AddState('run', RunState);
 		this._AddState('dance', DanceState);
+		this._AddState('stumble', getDamageState);
+		this._AddState('defeat', defeatState);
+		this._AddState('victory', winState);
 	}
 };
 
@@ -330,7 +368,7 @@ class WalkState extends State {
 			return;
 		}
 
-		this._parent.SetState('idle');
+		this._parent.SetState('walk');
 	}
 };
 
@@ -416,5 +454,153 @@ class IdleState extends State {
 		} else if (input._keys.space) {
 			this._parent.SetState('dance');
 		}
+	}
+};
+
+class getDamageState extends State {
+	constructor(parent) {
+		super(parent);
+
+		this._FinishedCallback = () => {
+			this._Finished();
+		}
+	}
+
+	get Name() {
+		return 'stumble';
+	}
+
+	Enter(prevState) {
+		const curAction = this._parent._proxy._animations['stumble'].action;
+		const mixer = curAction.getMixer();
+		mixer.addEventListener('finished', this._FinishedCallback);
+
+		if (prevState) {
+			const prevAction = this._parent._proxy._animations[prevState.Name].action;
+
+			curAction.reset();
+			curAction.setLoop(THREE.LoopOnce, 1);
+			curAction.clampWhenFinished = true;
+			curAction.crossFadeFrom(prevAction, 0.2, true);
+			curAction.play();
+		} else {
+			curAction.play();
+		}
+	}
+
+	_Finished() {
+		this._Cleanup();
+		this._parent.SetState('walk');
+	}
+
+	_Cleanup() {
+	const action = this._parent._proxy._animations['stumble'].action;
+	action.getMixer().removeEventListener('finished', this._FinishedCallback);
+	}
+
+
+	Exit() {
+		this._Cleanup();
+	}
+
+	Update(_) {
+	}
+};
+class defeatState extends State {
+	constructor(parent) {
+		super(parent);
+
+		this._FinishedCallback = () => {
+			this._Finished();
+		}
+	}
+
+	get Name() {
+		return 'defeat';
+	}
+
+	Enter(prevState) {
+		const curAction = this._parent._proxy._animations['defeat'].action;
+		const mixer = curAction.getMixer();
+		mixer.addEventListener('finished', this._FinishedCallback);
+
+		if (prevState) {
+			const prevAction = this._parent._proxy._animations[prevState.Name].action;
+
+			curAction.reset();
+			curAction.setLoop(THREE.LoopOnce, 1);
+			curAction.clampWhenFinished = true;
+			curAction.crossFadeFrom(prevAction, 0.2, true);
+			curAction.play();
+		} else {
+			curAction.play();
+		}
+	}
+
+	_Finished() {
+		this._Cleanup();
+		this._parent.SetState('walk');
+	}
+
+	_Cleanup() {
+	const action = this._parent._proxy._animations['defeat'].action;
+	action.getMixer().removeEventListener('finished', this._FinishedCallback);
+	}
+
+
+	Exit() {
+		this._Cleanup();
+	}
+
+	Update(_) {
+	}
+};
+class winState extends State {
+	constructor(parent) {
+		super(parent);
+
+		this._FinishedCallback = () => {
+			this._Finished();
+		}
+	}
+
+	get Name() {
+		return 'victory';
+	}
+
+	Enter(prevState) {
+		const curAction = this._parent._proxy._animations['victory'].action;
+		const mixer = curAction.getMixer();
+		mixer.addEventListener('finished', this._FinishedCallback);
+
+		if (prevState) {
+			const prevAction = this._parent._proxy._animations[prevState.Name].action;
+
+			curAction.reset();
+			curAction.setLoop(THREE.LoopOnce, 1);
+			curAction.clampWhenFinished = true;
+			curAction.crossFadeFrom(prevAction, 0.2, true);
+			curAction.play();
+		} else {
+			curAction.play();
+		}
+	}
+
+	_Finished() {
+		this._Cleanup();
+		this._parent.SetState('walk');
+	}
+
+	_Cleanup() {
+	const action = this._parent._proxy._animations['victory'].action;
+	action.getMixer().removeEventListener('finished', this._FinishedCallback);
+	}
+
+
+	Exit() {
+		this._Cleanup();
+	}
+
+	Update(_) {
 	}
 };

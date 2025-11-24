@@ -243,10 +243,10 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
   const asteroid = await loadModel('/models/Asteroides/Asteroide1.glb');
   const asteroid1 = await loadModel('/models/Asteroides/Asteroide2.glb');
   const asteroid2 = await loadModel('/models/Asteroides/Asteroide3.glb');
-  const asteroid3 = await loadModel('/models/Asteroides/Asteroide4.glb');
+  const asteroid3 = await loadModel('/models/Planets/Jupiter.glb');
   const asteroid4 = await loadModel('/models/Asteroides/Asteroide5.glb');
   const asteroid5 = await loadModel('/models/Asteroides/Asteroide6.glb');
-  const asteroid6 = await loadModel('/models/Asteroides/Asteroide7.glb');
+  const asteroid6 = await loadModel('/models/Planets/Marth.glb');
   const asteroid7 = await loadModel('/models/Asteroides/Asteroide8.glb');
   const asteroid8 = await loadModel('/models/Asteroides/Asteroide9.glb');
   const asteroid9 = await loadModel('/models/Asteroides/Asteroide10.glb');
@@ -266,14 +266,14 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
   voyager.scale.setScalar(1);
   sus.scale.setScalar(0.5);
 
-  asteroid.position.set(28, -10, -160);
-  asteroid1.position.set(40, -10, -140);
-  asteroid2.position.set(30, -10, -120);
-  asteroid3.position.set(80, -10, -100);
-  asteroid4.position.set(50, -10, -80);
-  asteroid5.position.set(40, -10, -60);
-  asteroid6.position.set(60, -10, -40);
-  asteroid7.position.set(28, -10, -20);
+  asteroid.position.set(28, -10, -170);
+  asteroid1.position.set(40, -10, -150);
+  asteroid2.position.set(30, -10, -130);
+  asteroid3.position.set(80, -10, -220);
+  asteroid4.position.set(50, -10, -90);
+  asteroid5.position.set(40, -10, -70);
+  asteroid6.position.set(30, -10, -30);
+  asteroid7.position.set(60, -10, -20);
   asteroid8.position.set(75, -10, -180);
   asteroid9.position.set(28, -10, -200);
   voyager.position.set(-50, -10, -150);
@@ -365,7 +365,30 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
       meta.position.z + 1
     );
     scene.add(ovniFinal);
+    // ---- THE MOOON ----
+  
+    moon = await loadModel('/models/Planets/Saturn.glb');
+    moon.scale.setScalar(2.5);
+    moon.position.set(
+      meta.position.x,
+      meta.position.y - 3,
+      meta.position.z + -10
+    );
+    scene.add(moon);
+    
+    {
+      const dx = moon.position.x - meta.position.x;
+      const dz = moon.position.z - meta.position.z;
+      const radius = Math.hypot(dx, dz);
+      const angle  = Math.atan2(dz, dx);
 
+      moonOrbit = {
+        radius,
+        angle,
+        speed: 0.0001,                 // rotación muy lenta
+        yOffset: moon.position.y - meta.position.y
+      };
+    }
     // ✔ AHORA SÍ deben imprimirse
     console.log("✔ Modelo cargado: META", meta ? "OK" : "ERROR");
     console.log("✔ Modelo cargado: OVNI FINAL", ovniFinal ? "OK" : "ERROR");
@@ -781,7 +804,7 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
       clearInterval(interval);
     }
   }, 16);
-}
+  }
 
   // -------------------------------------------------------
   // 🎮 MOVIMIENTO Y LÍMITES DE BERNICE
@@ -800,7 +823,7 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
 
   let meta = null;
   let metaSpawned = false;
-
+  let moon = null;
   let ovniFinal = null;
   let ovniTime = 0;
 
@@ -814,8 +837,8 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
   }, 400);
 
   function animate() {
-    if (gameState.paused) return;
     requestAnimationFrame(animate);
+    if (gameState.paused) return;
     const delta = clock.getDelta();
 
     // Actualizar la animación del cohete
@@ -843,16 +866,31 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
 
 
     // ---- COLISIÓN CON META FINAL ----
-    if (meta) {
-        const metaBBox = new THREE.Box3().setFromObject(meta);
+    if (meta && !gameState.ended) {
+      const metaBBox = new THREE.Box3().setFromObject(meta);
 
-        if (berniceBBox.intersectsBox(metaBBox)) {
-            gameState.paused = true;
-            bernice.isFrozen = true;
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
-            mostrarWin();
-            return;
+      if (berniceBBox.intersectsBox(metaBBox)) {
+        // Marcamos fin de partida
+        gameState.ended = true;
+
+        // Animación de victoria
+        if (bernice.controller && bernice.controller.win) {
+          bernice.controller.win();
+          gameState.paused = true;
         }
+
+        // Que ya no la puedas mover
+        bernice.isFrozen = true;
+
+        // Esperamos 5s para mostrar el Win
+        setTimeout(() => {
+          gameState.paused = true;
+          if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+          mostrarWin();
+        }, 5000);
+
+        return;
+      }
     }
 
 
@@ -940,11 +978,28 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
           gameState.esmeraldas--;
           esmeraldasHUD.textContent = gameState.esmeraldas;
 
-          if (gameState.esmeraldas <= 0) {
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+          if (bernice.controller && bernice.controller.takeDamage){
+            bernice.controller.takeDamage();
+          }
+          if (gameState.esmeraldas <= 0 && !gameState.ended) {
+            // Marcamos que el juego ya terminó para no volver a entrar
+            gameState.ended = true;
+
+            // Animación de derrota en el controller (si existe)
+            if (bernice.controller && bernice.controller.defeat) {
+              bernice.controller.defeat();
+              gameState.paused = true;
+            }
+
+            // Que ya no reciba input, pero dejamos correr la animación
             bernice.isFrozen = true;
-            gameState.paused = true;
-            mostrarGameOver();
+
+            // Después de 5 segundos ahora sí pausamos y mostramos Game Over
+            setTimeout(() => {
+              gameState.paused = true;
+              if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+              mostrarGameOver();
+            }, 3000);
           }
         }
 
@@ -971,14 +1026,13 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
         // aceleramos spawn
         if (spawnRate > 30) spawnRate -= 10;
 
-        // 👉 Si ya generamos 50 objetos, solo spawnear META
+        //  Si ya generamos 50 objetos, solo spawnear META
       if (spawnCount >= MAX_SPAWN) {
 
           if (!metaSpawned) {
               spawnMeta();   // solo una vez
           }
 
-          // ❌ NO return
           // El juego sigue normalmente
       } else {
 
@@ -1009,12 +1063,12 @@ if (gltfRocket.animations && gltfRocket.animations.length > 0) {
     enemies.forEach(enemy => {
 
       if (enemy.type === "asteroid") {
-          // ⚡ Rotación más caótica
+          //  Rotación más caótica
           enemy.rotation.x += 0.015 * globalSpeedMultiplier;
           enemy.rotation.y += 0.01  * globalSpeedMultiplier;
           enemy.rotation.z += 0.02  * globalSpeedMultiplier;
 
-          // 🔥 “Tambaleo”
+          //  “Tambaleo”
           enemy.position.y += Math.sin(Date.now() * 0.005 + enemy.position.x) * 0.01;
           
       } else {
