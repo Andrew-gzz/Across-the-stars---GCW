@@ -12,16 +12,57 @@
 </head>
 <style>
     .game-area {
-  position: relative;
-  width: 80vw;
-  height: 80vh;
-  overflow: hidden;
-}
+        position: relative;
+        width: 80vw;
+        height: 80vh;
+        overflow: hidden;
+    }
+        /* Caja de selección de música */
+    .opcion select,
+    #musicTrack {
+    width: 80%;
+    max-width: 260px;
+    padding: 10px 16px;
+    margin-top: 10px;
 
+    border-radius: 999px;
+    border: 2px solid #ffffff;
+    outline: none;
+
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+
+    font-family: 'Secular One', system-ui, sans-serif;
+    font-size: 0.95rem;
+    text-align: center;
+
+    /* quitar look feo del navegador */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.35);
+    cursor: pointer;
+    }
+
+    /* Opciones internas del select */
+    #musicTrack option {
+    background: #2a0036;   /* morado oscuro */
+    color: #ffffff;
+    }
+
+    /* Hover / focus */
+    #musicTrack:hover {
+    background: rgba(255, 255, 255, 0.14);
+    }
+
+    #musicTrack:focus {
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+    }
 </style>
 
 <body style="background-image: url('Img/BG4.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
-    <audio id="bg-music" src="sound/Radio_Portal.mp3" loop autoplay controls></audio> 
+    <audio id="bg-music" src="sound/Sound1.mp3" loop autoplay controls></audio> 
     <!-- Área de juego -->
     <div class="game-area"></div>
     
@@ -62,6 +103,34 @@
         <button id="btn-restart" onclick="restartGame()">Reiniciar</button>
         <button onclick="exitGame()">Salir</button>
         <button onclick="options()">Opciones</button>
+    </div>
+    <!-- 🔧 Modal de Opciones (dentro del juego) -->
+    <div id="options-menu" class="pause-menu" style="display:none;">
+    <h2 style="margin-bottom: 10px;">Opciones</h2>
+
+    <div class="opcion">
+        <label for="volumen">Volumen de Música</label><br>
+        <input type="range" id="volumen" min="0" max="100">
+    </div>
+
+    <div class="opcion" style="margin-top: 10px;">
+        <label for="musicTrack">Música de fondo</label><br>
+        <select id="musicTrack">
+            <option value="sound/Sound1.mp3">Saliendo a la Aventura</option>
+            <option value="sound/Sound2.mp3">Nuevos Horizontes</option>
+            <option value="sound/Sound3.mp3">Musica de Radio</option>
+            <option value="sound/Sound4.mp3">Para brillar</option>
+        </select>
+    </div>
+
+    <div class="opcion" style="margin-top: 10px;">
+        <label>
+        <input type="checkbox" id="efectos">
+        Efectos de sonido
+        </label>
+    </div>
+
+    <button style="margin-top: 16px;" onclick="closeOptions()">Guardar y volver</button>
     </div>
     <script type= "module" src="scripts/main.js"></script>
     <script src="scripts/menu.js"></script>
