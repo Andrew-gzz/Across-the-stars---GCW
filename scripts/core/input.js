@@ -1,3 +1,4 @@
+// scripts/core/input.js
 export const input = {
   _keys: { left: false, right: false, up: false, down: false }
 };
