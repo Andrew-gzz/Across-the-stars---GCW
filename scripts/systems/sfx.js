@@ -102,7 +102,4 @@ export function stopMusic() {
   if (!bg) return;
 
   bg.pause();
-  // Si quieres que al salir al menú vuelva desde el inicio,
-  // puedes resetear el tiempo:
-  // bg.currentTime = 0;
 }
