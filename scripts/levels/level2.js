@@ -1,3 +1,4 @@
+// scripts/levels/level2.js
 import * as THREE from 'three';
 import { loadModel } from '../core/assets.js';
 import { gameState } from '../core/gameState.js';

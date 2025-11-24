@@ -5,8 +5,8 @@ import { input } from '../core/input.js';
 
 export async function loadLevel3(scene, physics) {
 
-  // ✔ Recuperar dificultad del localStorage
-  const dificultad = (localStorage.getItem("dificultad") || "normal").toLowerCase();
+	// ✔ Recuperar dificultad del localStorage
+	const dificultad = (localStorage.getItem("dificultad") || "normal").toLowerCase();
 
   let tiempoActivado;
   if (dificultad === "facil") tiempoActivado = 10;
@@ -175,19 +175,19 @@ export async function loadLevel3(scene, physics) {
       background:rgba(0,0,0,0.8);backdrop-filter:blur(5px);
       display:flex;justify-content:center;align-items:center;z-index:100;
     `;
-    const img = document.createElement("img");
-    img.src = "Img/youWin.png";
-    img.style = "width:100%;height:100%;object-fit:cover;";
-    overlay.appendChild(img);
-    gameArea.appendChild(overlay);
-  }
+		const img = document.createElement("img");
+		img.src = "Img/youWin.png";
+		img.style = "width:100%;height:100%;object-fit:cover;";
+		overlay.appendChild(img);
+		gameArea.appendChild(overlay);
+	}
 
-  function mostrarGameOver() {
-    const gameArea = document.querySelector(".game-area");
-    if (!gameArea) return;
-    const overlay = document.createElement("div");
-    overlay.id = "gameover-screen";
-    overlay.style = `
+	function mostrarGameOver() {
+		const gameArea = document.querySelector(".game-area");
+		if (!gameArea) return;
+		const overlay = document.createElement("div");
+		overlay.id = "gameover-screen";
+		overlay.style = `
       position:absolute;top:0;left:0;width:100%;height:100%;
       background:rgba(0,0,0,0.8);backdrop-filter:blur(5px);
       display:flex;justify-content:center;align-items:center;z-index:100;
@@ -403,65 +403,65 @@ export async function loadLevel3(scene, physics) {
     // ---- COLISIONES ----
     enemies.forEach(enemy => {
 
-      if (berniceBBox.intersectsBox(enemy.bbox)) {
+			if (berniceBBox.intersectsBox(enemy.bbox)) {
 
-        if (enemy.type === "thunder") {
+				if (enemy.type === "thunder") {
 
-          // 🔥 ACELERA TODO DURANTE EL POWER-UP
-          globalSpeedMultiplier = 2.5;
-          bernice.speedMultiplier = 2.5;
+					// 🔥 ACELERA TODO DURANTE EL POWER-UP
+					globalSpeedMultiplier = 2.5;
+					bernice.speedMultiplier = 2.5;
 
-          gameState.thunderActive = true;
-          gameState.thunderTime = 3;
-          thunderHUD.textContent = gameState.thunderTime + "s";
+					gameState.thunderActive = true;
+					gameState.thunderTime = 3;
+					thunderHUD.textContent = gameState.thunderTime + "s";
 
-          if (gameState.thunderInterval) clearInterval(gameState.thunderInterval);
-          if (gameState.thunderTimeout) clearTimeout(gameState.thunderTimeout);
+					if (gameState.thunderInterval) clearInterval(gameState.thunderInterval);
+					if (gameState.thunderTimeout) clearTimeout(gameState.thunderTimeout);
 
-          // cada segundo
-          gameState.thunderInterval = setInterval(() => {
-            gameState.thunderTime--;
-            if (gameState.thunderTime >= 0)
-              thunderHUD.textContent = gameState.thunderTime + "s";
-          }, 1000);
+					// cada segundo
+					gameState.thunderInterval = setInterval(() => {
+						gameState.thunderTime--;
+						if (gameState.thunderTime >= 0)
+							thunderHUD.textContent = gameState.thunderTime + "s";
+					}, 1000);
 
-          // cuando se termina el power-up
-          gameState.thunderTimeout = setTimeout(() => {
-            gameState.thunderActive = false;
-            bernice.speedMultiplier = 1;
-            globalSpeedMultiplier = 1;  // 🔥 VOLVER TODO A NORMAL
-            thunderHUD.textContent = "0";
-          }, 3000);
-        }
+					// cuando se termina el power-up
+					gameState.thunderTimeout = setTimeout(() => {
+						gameState.thunderActive = false;
+						bernice.speedMultiplier = 1;
+						globalSpeedMultiplier = 1;  // 🔥 VOLVER TODO A NORMAL
+						thunderHUD.textContent = "0";
+					}, 3000);
+				}
 
-        if (enemy.type === "asteroid") {
-          crearExplosion(scene, enemy.position.clone());
+				if (enemy.type === "asteroid") {
+					crearExplosion(scene, enemy.position.clone());
 
-          gameState.esmeraldas--;
-          esmeraldasHUD.textContent = gameState.esmeraldas;
+					gameState.esmeraldas--;
+					esmeraldasHUD.textContent = gameState.esmeraldas;
 
-          if (gameState.esmeraldas <= 0) {
-            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
-            bernice.isFrozen = true;
-            gameState.paused = true;
-            mostrarGameOver();
-          }
-        }
+					if (gameState.esmeraldas <= 0) {
+						if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+						bernice.isFrozen = true;
+						gameState.paused = true;
+						mostrarGameOver();
+					}
+				}
 
-        if (enemy.type === "diamond") {
-          gameState.diamantes++;
-          diamondsHUD.textContent = gameState.diamantes;
-        }
+				if (enemy.type === "diamond") {
+					gameState.diamantes++;
+					diamondsHUD.textContent = gameState.diamantes;
+				}
 
-        if (enemy.type === "emerald") {
-          gameState.esmeraldas++;
-          esmeraldasHUD.textContent = gameState.esmeraldas;
-        }
+				if (enemy.type === "emerald") {
+					gameState.esmeraldas++;
+					esmeraldasHUD.textContent = gameState.esmeraldas;
+				}
 
-        removeEnemy(enemy);
-      }
+				removeEnemy(enemy);
+			}
 
-    });
+		});
 
    // ---- SPAWNEO ----
     if (frames % spawnRate === 0) {
@@ -524,10 +524,10 @@ export async function loadLevel3(scene, physics) {
       // velocidad general aplicada aquí 🔥
       enemy.position.addScaledVector(enemy.velocity, globalSpeedMultiplier);
 
-      if (enemy.zAcceleration) enemy.velocity.z += 0.0003 * globalSpeedMultiplier;
+			if (enemy.zAcceleration) enemy.velocity.z += 0.0003 * globalSpeedMultiplier;
 
-      enemy.bbox.setFromObject(enemy);
-    });
+			enemy.bbox.setFromObject(enemy);
+		});
 
 
      // ---- MOVER META ----
@@ -544,8 +544,8 @@ export async function loadLevel3(scene, physics) {
   // evitar rotación indeseada
   bernice.rotation.set(0, Math.PI, 0);
 
-  window.startGameLoop = animate;
-  animate();
+	window.startGameLoop = animate;
+	animate();
 
-  return { bernice };
+	return { bernice };
 }

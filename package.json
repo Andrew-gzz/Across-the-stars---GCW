@@ -22,7 +22,7 @@
   "homepage": "https://github.com/Andrew-gzz/Across-the-stars---GCW#readme",
   "dependencies": {
     "cannon-es": "^0.20.0",
-    "firebase": "^12.5.0",
+    "firebase": "^12.6.0",
     "three": "^0.180.0"
   },
   "devDependencies": {

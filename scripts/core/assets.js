@@ -12,40 +12,40 @@ import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
  */
 
 export async function loadModel(modelPath, texturePath) {
-  let loader;
+	let loader;
 
-  // Detectar automáticamente si el archivo es FBX
-  if (modelPath.toLowerCase().endsWith('.fbx')) {
-    loader = new FBXLoader();
-  } else {
-    loader = new GLTFLoader();
-  }
+	// Detectar automáticamente si el archivo es FBX
+	if (modelPath.toLowerCase().endsWith('.fbx')) {
+		loader = new FBXLoader();
+	} else {
+		loader = new GLTFLoader();
+	}
 
-  try {
-    const loaded = await loader.loadAsync(modelPath);
+	try {
+		const loaded = await loader.loadAsync(modelPath);
 
-    // gltf.scene existe solo para GLTF; en FBX el modelo es el root directamente
-    const model = loaded.scene || loaded;
+		// gltf.scene existe solo para GLTF; en FBX el modelo es el root directamente
+		const model = loaded.scene || loaded;
 
-    // Aplicar textura si viene en parámetros
-    if (texturePath) {
-      const texture = new THREE.TextureLoader().load(texturePath);
-      const material = new THREE.MeshPhongMaterial({
-        map: texture,
-        transparent: true,
-      });
+		// Aplicar textura si viene en parámetros
+		if (texturePath) {
+			const texture = new THREE.TextureLoader().load(texturePath);
+			const material = new THREE.MeshPhongMaterial({
+				map: texture,
+				transparent: true,
+			});
 
-      model.traverse((child) => {
-        if (child.isMesh) {
-          child.material = material;
-        }
-      });
-    }
+			model.traverse((child) => {
+				if (child.isMesh) {
+					child.material = material;
+				}
+			});
+		}
 
-    return model;
+		return model;
 
-  } catch (error) {
-    console.error(`❌ Error cargando el modelo: ${modelPath}`, error);
-    throw error;
-  }
+	} catch (error) {
+		console.error(`❌ Error cargando el modelo: ${modelPath}`, error);
+		throw error;
+	}
 }

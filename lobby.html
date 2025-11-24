@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lobby - Across the Stars</title>
+    <link rel="icon" type="image/png" href="Img/estrella.webp">
+    <link rel="stylesheet" href="style.css">
+    <style>
+
+    </style>
+</head>
+
+<body style="background-image: url('Img/BG4.png'); background-size: cover; background-repeat: no-repeat; background-attachment: fixed;">
+    
+    <!-- 👤 Usuario logueado -->
+    <div id="user-profile">
+        <img id="user-photo" src="/Img/pfp.jpg" alt="Avatar">
+        <span id="user-name">Usuario</span>
+    </div>
+
+    <!-- Pantalla inicial: Introducir código -->
+    <div id="initial-screen" class="lobby-container">
+        <h1 class="lobby-title">🌟 Multijugador</h1>
+        <p class="waiting-message">Ingresa un código de sala:</p>
+        
+        <div class="code-input-container">
+            <input 
+                type="text" 
+                id="room-code-input" 
+                class="code-input" 
+                placeholder="ABC123"
+                maxlength="6"
+                autocomplete="off"
+            >
+            <p class="hint-text">6 caracteres (letras y números)</p>
+        </div>
+
+        <div class="lobby-buttons">
+            <button id="btn-create-room" class="btn-lobby btn-create">Crear Sala</button>
+            <button id="btn-join-room" class="btn-lobby btn-join">Unirse a Sala</button>
+        </div>
+        <div class="lobby-buttons">
+            <button id="btn-back" class="btn-lobby btn-leave">Volver al Menú</button>
+        </div>
+    </div>
+
+    <!-- Pantalla de espera en sala -->
+    <div id="waiting-screen" class="lobby-container hidden">
+        <h1 class="lobby-title">🎮 Sala de Espera</h1>
+        
+        <div class="room-code-display" id="room-code-display">
+            ---
+        </div>
+
+        <div class="player-list" id="player-list">
+            <p class="waiting-message">Esperando jugadores...</p>
+        </div>
+
+        <div id="countdown-container" class="hidden">
+            <p style="color: #fbbf24; font-size: 20px;">¡El juego comienza en:</p>
+            <div class="countdown" id="countdown">3</div>
+        </div>
+
+        <div class="lobby-buttons">
+            <button id="btn-ready" class="btn-lobby btn-ready">¡Listo!</button>
+            <button id="btn-leave-room" class="btn-lobby btn-leave">Salir</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, onAuthStateChanged, waitForAuth } from './scripts/config/firebase.js';
+        import { RoomManager } from './scripts/systems/roomManager.js';
+
+        const roomManager = new RoomManager();
+
+        const initialScreen = document.getElementById('initial-screen');
+        const waitingScreen = document.getElementById('waiting-screen');
+        const playerList = document.getElementById('player-list');
+        const roomCodeInput = document.getElementById('room-code-input');
+        const roomCodeDisplay = document.getElementById('room-code-display');
+        const countdownContainer = document.getElementById('countdown-container');
+        const countdownEl = document.getElementById('countdown');
+        const btnReady = document.getElementById('btn-ready');
+
+        const userProfile = document.getElementById('user-profile');
+        const userPhoto = document.getElementById('user-photo');
+        const userName = document.getElementById('user-name');
+
+        // Verificar autenticación
+        (async () => {
+            const user = await waitForAuth();
+            
+            if (!user) {
+                alert("⚠️ Debes iniciar sesión primero");
+                window.location.href = "index.html";
+                return;
+            }
+
+            console.log("✅ Usuario verificado:", user.displayName);
+            
+            userProfile.style.display = "flex";
+            userPhoto.src = user.photoURL || "/Img/pfp.jpg";
+            userName.textContent = user.displayName || "Usuario";
+        })();
+
+        // Auto-mayúsculas en el input
+        roomCodeInput.addEventListener('input', (e) => {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+        // Crear sala con código personalizado
+        document.getElementById('btn-create-room').addEventListener('click', async () => {
+            const customCode = roomCodeInput.value.trim();
+            
+            if (customCode && customCode.length !== 6) {
+                alert("⚠️ El código debe tener exactamente 6 caracteres");
+                return;
+            }
+
+            try {
+                const roomCode = await roomManager.createRoom(customCode || null, 3);
+                showWaitingScreen(roomCode);
+            } catch (error) {
+                console.error("Error creando sala:", error);
+                alert("❌ " + error.message);
+            }
+        });
+
+        // Unirse a sala usando código
+        document.getElementById('btn-join-room').addEventListener('click', async () => {
+            const roomCode = roomCodeInput.value.trim();
+            
+            if (!roomCode) {
+                alert("⚠️ Debes ingresar un código de sala");
+                return;
+            }
+
+            if (roomCode.length !== 6) {
+                alert("⚠️ El código debe tener 6 caracteres");
+                return;
+            }
+
+            try {
+                const joinedCode = await roomManager.joinRoomByCode(roomCode);
+                showWaitingScreen(joinedCode);
+            } catch (error) {
+                console.error("Error uniéndose:", error);
+                alert("❌ " + error.message);
+            }
+        });
+
+        // Marcar como listo
+        btnReady.addEventListener('click', async () => {
+            await roomManager.setReady(true);
+            btnReady.disabled = true;
+            btnReady.textContent = "✅ Listo";
+        });
+
+        // Salir de sala
+        document.getElementById('btn-leave-room').addEventListener('click', async () => {
+            await roomManager.leaveRoom();
+            location.reload();
+        });
+
+        // Volver al menú
+        document.getElementById('btn-back').addEventListener('click', () => {
+            window.location.href = "modoJ.html";
+        });
+
+        // Mostrar pantalla de espera
+        function showWaitingScreen(roomCode) {
+            initialScreen.classList.add('hidden');
+            waitingScreen.classList.remove('hidden');
+            roomCodeDisplay.textContent = roomCode;
+            console.log("🏠 En sala:", roomCode);
+        }
+
+        // Actualizar lista de jugadores
+        roomManager.onRoomUpdate = (roomData) => {
+            const players = roomData.players || {};
+            const playerCount = Object.keys(players).length;
+            
+            if (playerCount === 0) {
+                playerList.innerHTML = '<p class="waiting-message">Esperando jugadores...</p>';
+                return;
+            }
+
+            playerList.innerHTML = Object.entries(players).map(([id, player]) => `
+                <div class="player-item">
+                    <div class="player-info">
+                        <img 
+                            src="${player.photoURL || '/Img/pfp.jpg'}" 
+                            alt="${player.name}" 
+                            class="player-avatar"
+                            onerror="this.src='/Img/pfp.jpg'"
+                        >
+                        <span class="player-name">${player.name}</span>
+                    </div>
+                    <span class="ready-status ${player.ready ? 'ready-yes' : 'ready-no'}">
+                        ${player.ready ? '✓ Listo' : '⏳ Esperando'}
+                    </span>
+                </div>
+            `).join('');
+
+            console.log("👥 Jugadores en sala:", playerCount);
+
+            if (roomData.status === 'ready') {
+                showCountdown();
+            }
+        };
+
+        // Cuenta regresiva
+        function showCountdown() {
+            countdownContainer.classList.remove('hidden');
+            btnReady.style.display = "none";
+            
+            let count = 3;
+            countdownEl.textContent = count;
+            
+            const interval = setInterval(() => {
+                count--;
+                
+                if (count > 0) {
+                    countdownEl.textContent = count;
+                } else {
+                    clearInterval(interval);
+                    countdownEl.textContent = "¡GO!";
+                }
+            }, 1000);
+        }
+
+        // Iniciar juego
+        roomManager.onGameStart = () => {
+            console.log("🚀 ¡El juego comienza!");
+            window.location.href = `jugar_multi.html?level=M&room=${roomManager.currentRoomId}`;
+        };
+    </script>
+</body>
+</html>
