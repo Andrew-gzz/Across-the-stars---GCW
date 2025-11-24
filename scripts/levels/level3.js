@@ -73,22 +73,6 @@ export async function loadLevel3(scene, physics) {
 
   const berniceBBox = new THREE.Box3().setFromObject(bernice);
 
-  // ---- OVNI ----
-  const ovni = await loadModel('/models/ovni.glb');
-  ovni.scale.setScalar(0.5);
-  ovni.position.set(0, -2, -170);
-  scene.add(ovni);
-
-  const ovniLight = new THREE.PointLight(0x33ffff, 20, 200);
-  ovniLight.position.set(0, -1, 0);
-  ovni.add(ovniLight);
-
-  const ovniGlow = new THREE.PointLight(0x99ccff, 2, 80);
-  ovniGlow.position.set(0, 0.5, 0);
-  ovni.add(ovniGlow);
-
-  let ovniTime = 0;
-
   // ---- MODELOS BASE ----
   const baseAsteroid = await loadModel('/models/asteroid2.glb');
   baseAsteroid.scale.setScalar(1.5);
@@ -106,7 +90,57 @@ export async function loadLevel3(scene, physics) {
   baseThunder.scale.setScalar(1.5);
   baseThunder.type = "thunder";
 
-  const models = [baseAsteroid, baseDiamante, baseEsmeralda, baseThunder];
+
+
+  // ---- META FINAL ----
+ async function spawnMeta() {
+
+    if (metaSpawned) return;
+    metaSpawned = true;
+    
+
+   // ---- META ----
+    meta = await loadModel('/models/meta2.glb');
+    meta.scale.setScalar(1);
+    meta.position.set(0, 0, -50);
+    meta.type = "goal";
+    meta.velocity = new THREE.Vector3(0, 0, 0.09); 
+    scene.add(meta);
+
+    // ---- OVNI FINAL ----
+    ovniFinal = await loadModel('/models/ovni2.glb');
+    ovniFinal.scale.setScalar(0.5);
+    ovniFinal.position.set(
+      meta.position.x,
+      meta.position.y - 3,
+      meta.position.z + 1
+    );
+    scene.add(ovniFinal);
+
+    // ✔ AHORA SÍ deben imprimirse
+    console.log("✔ Modelo cargado: META", meta ? "OK" : "ERROR");
+    console.log("✔ Modelo cargado: OVNI FINAL", ovniFinal ? "OK" : "ERROR");
+
+    // ⭐ LUCES
+    const ovniLight = new THREE.PointLight(0x33ffff, 20, 200);
+    ovniLight.position.set(0, -1, 0);
+    ovniFinal.add(ovniLight);
+
+    const ovniGlow = new THREE.PointLight(0x99ccff, 4, 90);
+    ovniGlow.position.set(0, 0.5, 0);
+    ovniFinal.add(ovniGlow);
+  }
+
+  //Cambiar probabilidaades
+  function getRandomModel() {
+    const r = Math.random();
+
+    if (r < 0.60) return baseAsteroid;      // 60%
+    if (r < 0.80) return baseDiamante;      // 20%
+    if (r < 0.90) return baseEsmeralda;     // 10%
+    return baseThunder;                     // 10%
+  }
+
 
   function cloneModel(model) {
     const clone = model.clone(true);
@@ -191,6 +225,26 @@ export async function loadLevel3(scene, physics) {
       }
 
     }, 1000);
+    // 🔥 CADA 3 SEGUNDOS SE PIERDE 1 ESMERALDA EN MODO DIFÍCIL
+    gameState.damageInterval = setInterval(() => {
+        if (gameState.paused) return;
+
+        gameState.esmeraldas--;
+        esmeraldasHUD.textContent = gameState.esmeraldas;
+
+        console.log("💀 Esmeralda perdida. Restantes:", gameState.esmeraldas);
+
+        // Si se queda sin esmeraldas → Game Over
+        if (gameState.esmeraldas <= 0) {
+            clearInterval(gameState.damageInterval);
+            clearInterval(gameState.timeInterval);
+            gameState.paused = true;
+            bernice.isFrozen = true;
+            mostrarGameOver();
+        }
+
+    }, 3000); // 🔥 Cada 3 segundos
+
   } else {
     tiempoHUD.textContent = "--:--";
     gameState.timeInterval = null;
@@ -251,19 +305,69 @@ export async function loadLevel3(scene, physics) {
   // -------------------------------------------------------
   // 🔥 LOOP PRINCIPAL
   // -------------------------------------------------------
+  //variables globales 
+  let spawnCount = 0;      // ← cuenta objetos generados
+  const MAX_SPAWN = 200;    // ← límite antes de meta/ovni
+
+  let meta = null;
+  let metaSpawned = false;
+
+  let ovniFinal = null;
+  let ovniTime = 0;
+
+  // distancia detrás de la meta
+  let finalTargetOffset = -5; 
+
 
   function animate() {
     if (gameState.paused) return;
     requestAnimationFrame(animate);
 
-    // --- OVNI ---
-    ovniTime += 0.02;
-    ovni.position.y = -1 + Math.sin(ovniTime * 2) * 1.5;
-    ovni.position.x = Math.sin(ovniTime * 0.7) * 10;
-    ovni.rotation.y += 0.01;
+    // ---- OVNI FINAL (si existe) ----
+    if (ovniFinal && meta) {
+        ovniTime += 0.03;
 
-    ovniLight.intensity = 2 + Math.sin(ovniTime * 3) * 0.7;
-    ovniGlow.intensity = 1 + Math.cos(ovniTime * 3) * 0.4;
+        // --- Movimiento lateral independiente ---
+        ovniFinal.position.x = Math.sin(ovniTime * 0.6) * 10;
+
+        // --- Flotación vertical suave ---
+        ovniFinal.position.y = meta.position.y + 20 + Math.sin(ovniTime * 2) * 2;
+
+        // --- Mantenerse cerca de la meta en Z ---
+        ovniFinal.position.z = meta.position.z + 5;
+
+        // --- Rotación del ovni ---
+        ovniFinal.rotation.y += 0.01;
+    }
+
+
+
+    // ---- COLISIÓN CON META FINAL ----
+    if (meta) {
+        const metaBBox = new THREE.Box3().setFromObject(meta);
+
+        if (berniceBBox.intersectsBox(metaBBox)) {
+            gameState.paused = true;
+            bernice.isFrozen = true;
+            if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+            mostrarWin();
+            return;
+        }
+    }
+
+
+    // ---- COLISIÓN CON OVNI FINAL ----
+    if (ovniFinal) {
+      const ovniFinalBBox = new THREE.Box3().setFromObject(ovniFinal);
+      if (berniceBBox.intersectsBox(ovniFinalBBox)) {
+        gameState.paused = true;
+        bernice.isFrozen = true;
+        if (gameState.timeInterval) clearInterval(gameState.timeInterval);
+        mostrarWin();
+        return;
+      }
+    }
+
 
     // --- PISO INFINITO ---
     ground1.position.z += groundSpeed * globalSpeedMultiplier;
@@ -295,16 +399,6 @@ export async function loadLevel3(scene, physics) {
     if (bernice.position.z > MAX_Z) bernice.position.z = MAX_Z;
 
     berniceBBox.setFromObject(bernice);
-
-    // --- COLISIÓN CON OVNI ---
-    const ovniBBox = new THREE.Box3().setFromObject(ovni);
-    if (berniceBBox.intersectsBox(ovniBBox)) {
-      gameState.paused = true;
-      bernice.isFrozen = true;
-      if (gameState.timeInterval) clearInterval(gameState.timeInterval);
-      mostrarWin();
-      return;
-    }
 
     // ---- COLISIONES ----
     enemies.forEach(enemy => {
@@ -369,32 +463,64 @@ export async function loadLevel3(scene, physics) {
 
     });
 
-    // ---- SPAWNEO ----
+   // ---- SPAWNEO ----
     if (frames % spawnRate === 0) {
-      if (spawnRate > 30) spawnRate -= 10;
 
-      const model = models[Math.floor(Math.random() * models.length)];
-      const enemy = cloneModel(model);
+        // aceleramos spawn
+        if (spawnRate > 30) spawnRate -= 10;
 
-      const laneX = [-12, -6, 0, 6, 12];
-      enemy.position.set(laneX[Math.floor(Math.random() * laneX.length)], 1.2, -160);
+        // 👉 Si ya generamos 50 objetos, solo spawnear META
+      if (spawnCount >= MAX_SPAWN) {
 
-      enemy.velocity = new THREE.Vector3(0, 0, 0.03);
-      enemy.zAcceleration = true;
-      enemy.bbox = new THREE.Box3().setFromObject(enemy);
+          if (!metaSpawned) {
+              spawnMeta();   // solo una vez
+          }
 
-      scene.add(enemy);
-      enemies.push(enemy);
+          // ❌ NO return
+          // El juego sigue normalmente
+      } else {
+
+          // ✔ generar enemigos normales
+          const model = getRandomModel();
+          const enemy = cloneModel(model);
+
+          const laneX = [-12, -6, 0, 6, 12];
+          enemy.position.set(laneX[Math.floor(Math.random() * laneX.length)], 1.2, -50);
+
+          enemy.velocity = new THREE.Vector3(0, 0, 0.03);
+          enemy.zAcceleration = true;
+          enemy.bbox = new THREE.Box3().setFromObject(enemy);
+
+          scene.add(enemy);
+          enemies.push(enemy);
+
+          spawnCount++;
+          console.log(`🟡 OBJETOS GENERADOS: ${spawnCount}/${MAX_SPAWN}`);
+
+      }
+
     }
+
+
 
     // ---- MOVIMIENTO DE OBJETOS ----
     enemies.forEach(enemy => {
+      
+      if (enemy.type === "asteroid") {
+          // ⚡ Rotación más caótica
+          enemy.rotation.x += 0.015 * globalSpeedMultiplier;
+          enemy.rotation.y += 0.01  * globalSpeedMultiplier;
+          enemy.rotation.z += 0.02  * globalSpeedMultiplier;
 
-      if (enemy.type !== "asteroid") {
-        enemy.position.y += Math.sin(Date.now() * 0.003 + enemy.position.x) * 0.005;
-        enemy.rotation.y += 0.02 * globalSpeedMultiplier;
+          // 🔥 “Tambaleo”
+          enemy.position.y += Math.sin(Date.now() * 0.005 + enemy.position.x) * 0.01;
+          
+      } else {
+          // Animación normal de diamantes, esmeraldas, thunder
+          enemy.position.y += Math.sin(Date.now() * 0.003 + enemy.position.x) * 0.005;
+          enemy.rotation.y += 0.02 * globalSpeedMultiplier;
       }
-
+    
       // velocidad general aplicada aquí 🔥
       enemy.position.addScaledVector(enemy.velocity, globalSpeedMultiplier);
 
@@ -403,8 +529,17 @@ export async function loadLevel3(scene, physics) {
       enemy.bbox.setFromObject(enemy);
     });
 
+
+     // ---- MOVER META ----
+    if (meta) {
+      meta.position.addScaledVector(meta.velocity, globalSpeedMultiplier);
+    }
+
+
     frames++;
   }
+
+
 
   // evitar rotación indeseada
   bernice.rotation.set(0, Math.PI, 0);
